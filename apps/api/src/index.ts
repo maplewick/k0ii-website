@@ -153,7 +153,7 @@ export function createApp(env: Env) {
 
 const env = loadEnv();
 const app = createApp(env);
-const port = env.API_PORT;
+const port = env.listenPort;
 
 console.log(`[api] listening on http://localhost:${port}`);
 Bun.serve({ port, fetch: app.fetch });

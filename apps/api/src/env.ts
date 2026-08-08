@@ -10,6 +10,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   DIRECT_DATABASE_URL: z.string().optional(),
   API_PORT: z.coerce.number().default(3002),
+  /** Railway / hosts inject PORT — preferred when set. */
+  PORT: z.coerce.number().optional(),
   /**
    * Comma-separated browser origins allowed to call the API (CORS).
    * Always merges localhost:3001 for local Next. Set production Vercel URL(s) here.
@@ -37,6 +39,7 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema> & {
   corsOrigins: string[];
+  listenPort: number;
 };
 
 function parseWebOrigins(raw: string | undefined): string[] {
@@ -64,5 +67,6 @@ export function loadEnv(): Env {
   return {
     ...parsed.data,
     corsOrigins: parseWebOrigins(parsed.data.WEB_ORIGINS),
+    listenPort: parsed.data.PORT ?? parsed.data.API_PORT,
   };
 }
