@@ -18,11 +18,17 @@ import { buildRosterResponse } from "./services/build-roster";
 export function createApp(env: Env) {
   const app = new Hono();
   const cacheMs = env.ROSTER_CACHE_MS;
+  const allowed = new Set(env.corsOrigins.map((o) => o.replace(/\/$/, "")));
 
   app.use(
     "*",
     cors({
-      origin: env.corsOrigins,
+      origin: (origin) => {
+        if (env.corsAllowAll) return origin || "*";
+        if (!origin) return env.corsOrigins[0] ?? "*";
+        const normalized = origin.replace(/\/$/, "");
+        return allowed.has(normalized) ? origin : null;
+      },
       allowMethods: ["GET", "OPTIONS"],
     }),
   );
@@ -156,4 +162,7 @@ const app = createApp(env);
 const port = env.listenPort;
 
 console.log(`[api] listening on http://localhost:${port}`);
+console.log(
+  `[api] CORS ${env.corsAllowAll ? "allow-all (*)" : `origins=${env.corsOrigins.join(",")}`}`,
+);
 Bun.serve({ port, fetch: app.fetch });

@@ -7,6 +7,8 @@ const monorepoRoot = path.join(
   "../..",
 );
 
+const apiUpstream = process.env.API_UPSTREAM_URL?.replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
   transpilePackages: ["@k0ii/schemas"],
   turbopack: {
@@ -18,6 +20,16 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "tr.rbxcdn.com" },
       { protocol: "https", hostname: "thumbnails.roblox.com" },
     ],
+  },
+  async rewrites() {
+    if (!apiUpstream) return [];
+    // Browser hits /api/* on the web origin; Next proxies to the API service.
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${apiUpstream}/api/:path*`,
+      },
+    ];
   },
   async redirects() {
     return [

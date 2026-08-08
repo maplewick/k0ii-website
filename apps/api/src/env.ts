@@ -39,23 +39,46 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema> & {
   corsOrigins: string[];
+  /** When true, reflect any browser Origin (WEB_ORIGINS=*). */
+  corsAllowAll: boolean;
   listenPort: number;
 };
 
-function parseWebOrigins(raw: string | undefined): string[] {
-  const extras = (raw ?? "")
+/** Strip quotes / trailing slash — Railway UI paste often adds either. */
+export function normalizeOrigin(raw: string): string {
+  let s = raw.trim();
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  return s.replace(/\/$/, "");
+}
+
+function parseWebOrigins(raw: string | undefined): {
+  origins: string[];
+  allowAll: boolean;
+} {
+  const tokens = (raw ?? "")
     .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .filter((origin) => {
-      try {
-        const u = new URL(origin);
-        return u.protocol === "http:" || u.protocol === "https:";
-      } catch {
-        return false;
-      }
-    });
-  return [...new Set([...DEFAULT_WEB_ORIGINS, ...extras])];
+    .map((s) => normalizeOrigin(s))
+    .filter(Boolean);
+  if (tokens.some((t) => t === "*")) {
+    return { origins: [...DEFAULT_WEB_ORIGINS], allowAll: true };
+  }
+  const extras = tokens.filter((origin) => {
+    try {
+      const u = new URL(origin);
+      return u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+      return false;
+    }
+  });
+  return {
+    origins: [...new Set([...DEFAULT_WEB_ORIGINS, ...extras])],
+    allowAll: false,
+  };
 }
 
 export function loadEnv(): Env {
@@ -64,9 +87,11 @@ export function loadEnv(): Env {
     console.error(parsed.error.flatten().fieldErrors);
     throw new Error("Invalid environment configuration");
   }
+  const { origins, allowAll } = parseWebOrigins(parsed.data.WEB_ORIGINS);
   return {
     ...parsed.data,
-    corsOrigins: parseWebOrigins(parsed.data.WEB_ORIGINS),
+    corsOrigins: origins,
+    corsAllowAll: allowAll,
     listenPort: parsed.data.PORT ?? parsed.data.API_PORT,
   };
 }
