@@ -1,0 +1,533 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --pond-bg-from: #5fcbdb;
+  --pond-bg-to: #3aa8c4;
+  --card-surface: #fbf3e7;
+  --card-surface-alt: #efe2cc;
+  --koi-orange: #e8801f;
+  --koi-orange-deep: #c4650f;
+  --lily-green: #5fae63;
+  --pond-teal: #2e96a8;
+  --ink: #2b2320;
+  --ink-soft: #4a3f38;
+  --alert-coral: #d9663f;
+
+  --background: var(--pond-bg-from);
+  --foreground: var(--ink);
+  --border: color-mix(in srgb, var(--pond-teal) 28%, transparent);
+  --accent: color-mix(in srgb, var(--pond-teal) 18%, var(--card-surface));
+
+  --radius-card: 24px;
+  --radius-input: 16px;
+  --radius-pill: 9999px;
+
+  --shadow-card:
+    0 4px 6px -1px rgb(46 150 168 / 12%),
+    0 10px 24px -4px rgb(196 101 15 / 14%),
+    0 2px 4px rgb(43 35 32 / 6%);
+  --shadow-card-hover:
+    0 8px 16px -2px rgb(46 150 168 / 16%),
+    0 16px 32px -6px rgb(196 101 15 / 18%);
+  --shadow-button:
+    0 2px 4px rgb(196 101 15 / 25%),
+    0 4px 10px rgb(43 35 32 / 8%);
+  --shadow-modal:
+    0 24px 48px -8px rgb(11 31 46 / 35%),
+    0 8px 16px rgb(43 35 32 / 12%);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.dark {
+  --pond-bg-from: #0b1f2e;
+  --pond-bg-to: #071420;
+  --card-surface: #16303f;
+  --card-surface-alt: #0f2431;
+  --koi-orange: #f2954d;
+  --koi-orange-deep: #d97b33;
+  --lily-green: #4fd4c4;
+  --pond-teal: #5fb4d6;
+  --ink: #ede6da;
+  --ink-soft: #b7c6d0;
+  --alert-coral: #e27b5c;
+  --border: color-mix(in srgb, var(--pond-teal) 32%, transparent);
+  --accent: color-mix(in srgb, var(--pond-teal) 22%, var(--card-surface));
+
+  --shadow-card:
+    0 4px 8px -1px rgb(0 0 0 / 35%),
+    0 12px 28px -6px rgb(79 212 196 / 12%);
+  --shadow-card-hover:
+    0 8px 18px -2px rgb(0 0 0 / 45%),
+    0 18px 36px -8px rgb(95 180 214 / 16%);
+  --shadow-button:
+    0 2px 6px rgb(0 0 0 / 40%),
+    0 4px 12px rgb(242 149 77 / 18%);
+  --shadow-modal:
+    0 28px 56px -10px rgb(0 0 0 / 55%),
+    0 12px 24px rgb(79 212 196 / 10%);
+}
+
+@theme inline {
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-rounded, sans-serif;
+  --font-brand: var(--font-brand), ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-card-surface: var(--card-surface);
+  --color-card-surface-alt: var(--card-surface-alt);
+  --color-koi: var(--koi-orange);
+  --color-koi-deep: var(--koi-orange-deep);
+  --color-lily: var(--lily-green);
+  --color-pond-teal: var(--pond-teal);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-alert: var(--alert-coral);
+
+  --radius-pill: 9999px;
+  --radius-lg: var(--radius-card);
+  --radius-md: var(--radius-input);
+  --radius-sm: 12px;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-button: var(--shadow-button);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    overflow-x: clip;
+  }
+
+  body {
+    color: var(--ink);
+    background: linear-gradient(165deg, var(--pond-bg-from) 0%, var(--pond-bg-to) 100%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+    font-size: 1rem;
+    line-height: 1.6;
+    overflow-x: clip;
+    transition: background 300ms ease, color 300ms ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display), ui-rounded, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--koi-orange) 35%, transparent);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), ui-rounded, sans-serif;
+  }
+
+  .font-brand {
+    font-family: var(--font-brand), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.04em;
+  }
+
+  .font-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* designGuide §3 — pills must be fully rounded; token also exposed as rounded-pill in @theme */
+  .rounded-pill {
+    border-radius: var(--radius-pill);
+  }
+
+  .pond-card {
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--card-surface) 92%, white) 0%,
+      var(--card-surface) 45%,
+      color-mix(in srgb, var(--card-surface) 88%, var(--pond-teal)) 100%
+    );
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    border: 1.5px solid color-mix(in srgb, var(--pond-teal) 22%, transparent);
+  }
+
+  .dark .pond-card {
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--card-surface) 90%, #4fd4c4) 0%,
+      var(--card-surface) 50%,
+      color-mix(in srgb, var(--card-surface) 85%, black) 100%
+    );
+  }
+
+  .pond-lede {
+    max-width: 42rem;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--ink);
+    text-shadow:
+      0 0 18px color-mix(in srgb, var(--pond-bg-from) 65%, transparent),
+      0 1px 2px color-mix(in srgb, var(--pond-bg-to) 35%, transparent);
+  }
+
+  .dark .pond-lede {
+    text-shadow:
+      0 0 20px color-mix(in srgb, var(--pond-bg-to) 80%, transparent),
+      0 1px 3px rgb(0 0 0 / 45%);
+  }
+
+  @media (min-width: 640px) {
+    .pond-lede {
+      font-size: 1.125rem;
+    }
+  }
+
+  /* Page rhythm: one gap scale site-wide. Do not stack extra space-y on .pond-page. */
+  .pond-page {
+    @apply space-y-6 sm:space-y-8 lg:space-y-10;
+  }
+
+  /* Nested operate panels (hub tabs, embedded roster, race/clans). */
+  .pond-stack {
+    @apply space-y-5 sm:space-y-6;
+  }
+
+  /* Long multi-block panels inside a hub (join, registry). */
+  .pond-chapters {
+    @apply space-y-8 sm:space-y-10;
+  }
+
+  .pond-section {
+    @apply space-y-3 sm:space-y-4;
+  }
+
+  .pond-section-head {
+    @apply max-w-2xl space-y-2;
+  }
+
+  .pond-pad {
+    @apply p-4 sm:p-5 lg:p-6;
+  }
+
+  /* Metric / glance grids under heroes. */
+  .pond-metrics {
+    @apply grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4;
+  }
+
+  .pond-label {
+    font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .animate-fade-rise {
+    animation: fade-rise 0.45s cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  .animate-badge-bob {
+    animation: badge-bob 4.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  .race-live-dot {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--lily-green) 55%, transparent);
+    animation: race-live-pulse 1.8s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  }
+
+  .race-odds-fill {
+    transform-origin: left center;
+    will-change: transform;
+    transition: transform 280ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .race-rival-row:hover {
+      background-color: color-mix(in srgb, var(--pond-teal) 6%, transparent);
+    }
+
+    .clans-ladder-row:hover {
+      background-color: color-mix(in srgb, var(--pond-teal) 6%, transparent);
+    }
+
+    .global-ladder-row:hover {
+      background-color: color-mix(in srgb, var(--pond-teal) 6%, transparent);
+    }
+
+    .leagues-ladder-row:hover {
+      background-color: color-mix(in srgb, var(--pond-teal) 6%, transparent);
+    }
+
+    .charts-clan-row:hover {
+      background-color: color-mix(in srgb, var(--pond-teal) 6%, transparent);
+    }
+
+    .charts-bar:hover {
+      filter: brightness(1.08);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-badge-bob {
+      animation: none;
+    }
+
+    .animate-fade-rise {
+      animation: none;
+    }
+
+    .race-live-dot {
+      animation: none;
+      box-shadow: none;
+    }
+
+    .race-odds-fill {
+      transition: none;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    [data-slot="dialog-overlay"] {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background-color: color-mix(in srgb, var(--ink) 88%, transparent);
+    }
+
+    .dark [data-slot="dialog-overlay"] {
+      background-color: color-mix(in srgb, #02080e 92%, transparent);
+    }
+  }
+}
+
+@keyframes race-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--lily-green) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hub-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes badge-bob {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(3px, -8px);
+  }
+}
+
+@keyframes reward-rainbow-shift {
+  0% {
+    filter: hue-rotate(0deg) saturate(1.35);
+  }
+  100% {
+    filter: hue-rotate(360deg) saturate(1.35);
+  }
+}
+
+.reward-art-rainbow {
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, #ff6b6b 55%, transparent),
+    inset 0 0 0 3px color-mix(in srgb, #ffd166 45%, transparent);
+}
+
+.reward-art-rainbow-img {
+  animation: reward-rainbow-shift 4.5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reward-art-rainbow-img {
+    animation: none;
+  }
+}
+
+.pond-water-wash {
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--pond-bg-from) 82%, white) 0%,
+    var(--pond-bg-from) 36%,
+    var(--pond-bg-to) 100%
+  );
+}
+
+.dark .pond-water-wash {
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--pond-bg-from) 78%, #4fd4c4) 0%,
+    var(--pond-bg-from) 44%,
+    var(--pond-bg-to) 100%
+  );
+}
+
+.pond-caustic-tex {
+  background-image: url("/pond/caustics.png");
+  background-repeat: repeat;
+  background-position: center;
+  pointer-events: none;
+}
+
+.pond-caustic-tex--far {
+  background-size: 1120px auto;
+  mix-blend-mode: soft-light;
+  opacity: 0.45;
+  filter: blur(1.2px) saturate(1.04);
+}
+
+.pond-caustic-tex--near {
+  background-size: 800px auto;
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+  filter: saturate(1.06);
+}
+
+.pond-caustic-tint {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--pond-bg-from) 55%, transparent) 0%,
+    color-mix(in srgb, var(--pond-teal) 22%, transparent) 50%,
+    color-mix(in srgb, var(--pond-bg-to) 45%, transparent) 100%
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.dark .pond-caustic-tex--far {
+  opacity: 0.4;
+  filter: blur(1.4px) brightness(0.55) contrast(1.12) saturate(0.75);
+}
+
+.dark .pond-caustic-tex--near {
+  opacity: 0.48;
+  filter: brightness(0.5) contrast(1.18) saturate(0.8);
+}
+
+.pond-water-depth {
+  background:
+    radial-gradient(
+      ellipse 92% 78% at 50% 38%,
+      transparent 18%,
+      color-mix(in srgb, var(--pond-bg-to) 55%, transparent) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--pond-bg-to) 22%, transparent) 0%,
+      transparent 28%,
+      transparent 72%,
+      color-mix(in srgb, var(--pond-bg-to) 28%, transparent) 100%
+    );
+  opacity: 0.88;
+}
+
+.pond-caustic-drift {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.pond-caustic-drift--far {
+  animation: pond-caustic-far 88s linear infinite;
+}
+
+.pond-caustic-drift--near {
+  animation: pond-caustic-near 64s linear infinite;
+}
+
+@keyframes pond-caustic-far {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(1.15%, -0.75%, 0);
+  }
+  40% {
+    transform: translate3d(0.35%, -1.35%, 0);
+  }
+  60% {
+    transform: translate3d(-1%, -0.4%, 0);
+  }
+  80% {
+    transform: translate3d(-0.45%, 0.7%, 0);
+  }
+}
+
+@keyframes pond-caustic-near {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(-1.25%, 0.85%, 0);
+  }
+  40% {
+    transform: translate3d(-0.3%, 1.2%, 0);
+  }
+  60% {
+    transform: translate3d(1.05%, 0.35%, 0);
+  }
+  80% {
+    transform: translate3d(0.55%, -0.65%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  body {
+    transition: none;
+  }
+
+  .pond-caustic-drift,
+  .pond-caustic-drift--far,
+  .pond-caustic-drift--near {
+    animation: none !important;
+    transform: none !important;
+  }
+}

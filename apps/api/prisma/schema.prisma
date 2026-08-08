@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+model Clan {
+  id                 String   @id
+  iconAssetId        String?
+  countryCode        String?
+  memberCapacity     Int?
+  isPrimary          Boolean  @default(false)
+  lastKickTimestamp  Int?
+
+  memberships   ClanMembership[]
+  clanSnapshots ClanBattleSnapshot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Player {
+  robloxUserId BigInt   @id
+  displayName  String
+  avatarUrl    String?
+
+  memberships    ClanMembership[]
+  pointSnapshots PlayerPointSnapshot[]
+
+  updatedAt DateTime @updatedAt
+}
+
+model ClanMembership {
+  clanId          String
+  robloxUserId    BigInt
+  permissionLevel Int       @default(0)
+  joinedAt        DateTime?
+
+  clan   Clan   @relation(fields: [clanId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [robloxUserId], references: [robloxUserId], onDelete: Cascade)
+
+  @@id([clanId, robloxUserId])
+  @@index([robloxUserId])
+}
+
+model Battle {
+  id          String    @id
+  title       String?
+  startTime   DateTime?
+  endTime     DateTime?
+  state       String
+  /** Raw PS99 PlacementRewards — written once when battle first seen. */
+  rewardsJson Json?
+
+  clanSnapshots   ClanBattleSnapshot[]
+  playerSnapshots PlayerPointSnapshot[]
+  archive         BattleArchive?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClanBattleSnapshot {
+  id               String   @id @default(cuid())
+  battleId         String
+  clanId           String
+  capturedAt       DateTime
+  battlePoints     BigInt
+  rank             Int?
+  memberCount      Int?
+  contributorCount Int?
+
+  battle Battle @relation(fields: [battleId], references: [id])
+  clan   Clan   @relation(fields: [clanId], references: [id])
+
+  @@index([battleId, clanId, capturedAt(sort: Desc)])
+  @@index([battleId, capturedAt])
+}
+
+model PlayerPointSnapshot {
+  id           String   @id @default(cuid())
+  battleId     String
+  clanId       String
+  robloxUserId BigInt
+  capturedAt   DateTime
+  battlePoints BigInt   @default(0)
+
+  battle Battle @relation(fields: [battleId], references: [id])
+  player Player @relation(fields: [robloxUserId], references: [robloxUserId])
+
+  @@index([battleId, clanId, capturedAt])
+  @@index([battleId, robloxUserId, capturedAt(sort: Desc)])
+}
+
+model BattleArchive {
+  battleId         String   @id
+  finalizedAt      DateTime
+  startedAt        DateTime?
+  endedAt          DateTime?
+  ourRank          Int?
+  ourPoints        BigInt?
+  medal            String?
+  participantCount Int?
+  membersJson      Json?
+
+  battle Battle @relation(fields: [battleId], references: [id])
+}

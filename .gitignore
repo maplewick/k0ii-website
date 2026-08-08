@@ -1,0 +1,11 @@
+node_modules
+.turbo
+.env
+.env.local
+.evn
+*.log
+dist
+.next
+graphify-out
+data/poll-stamp.json
+data/global-player-index.json

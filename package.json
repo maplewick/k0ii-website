@@ -1,0 +1,17 @@
+{
+  "name": "k0ii-website",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:generate": "turbo db:generate",
+    "db:migrate": "cd apps/api && bun scripts/prisma-with-root-env.ts migrate dev",
+    "db:push": "cd apps/api && bun scripts/prisma-with-root-env.ts db push"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  },
+  "packageManager": "bun@1.2.20"
+}
