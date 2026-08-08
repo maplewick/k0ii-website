@@ -114,10 +114,10 @@ Copy from local `.env.example` / your machine `.env` (never commit secrets):
 ### 4. Wire frontend → api
 
 1. Deploy api → copy public URL (`https://…up.railway.app`)  
-2. On **web**: set `API_UPSTREAM_URL` to that URL + `NEXT_PUBLIC_API_SAME_ORIGIN=1` → **rebuild** web (rewrites bake in at build)  
+2. On **web**: set `API_UPSTREAM_URL` to that URL + `NEXT_PUBLIC_API_SAME_ORIGIN=1` → redeploy web  
 3. On **api**: set `WEB_ORIGINS` to the web public URL (or `*`) → redeploy api  
 
-Browser then calls `/api/…` on the web origin; Next proxies to the api service. Rewards / Global / Leagues are client-only and need this (or working CORS). Roster SSR skips CORS, which is why it looked “fine” alone.
+Browser calls `/api/…` on the web origin; `apps/web/src/app/api/[...path]/route.ts` proxies to the api service at runtime (so `API_UPSTREAM_URL` need not exist at build time). Rewards / Global / Leagues are client-only and need this (or working CORS).
 
 ### Notes
 
