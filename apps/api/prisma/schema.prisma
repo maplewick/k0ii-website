@@ -109,3 +109,15 @@ model BattleArchive {
 
   battle Battle @relation(fields: [battleId], references: [id])
 }
+
+/**
+ * Singleton global leaderboard index. Poll writes; API reads.
+ * Shared across Railway services via Postgres (not local disk).
+ */
+model GlobalPlayerIndexSnapshot {
+  id        String   @id @default("current")
+  /** Full GlobalPlayerIndex JSON blob (battleId, players, totals, …). */
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

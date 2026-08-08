@@ -39,7 +39,7 @@ Design rules:
 - Windowed clan snaps; full top-50 every `CLAN_LADDER_FULL_EVERY` ticks
 - Skip flat player snaps unless `PLAYER_SNAP_FORCE_MS` elapsed
 - In-memory cache for `/api/roster`, `/api/leaderboards`, `/api/graphs` until next poll
-- **Global leaderboard is file-backed** (`data/global-player-index.json`) — **0 Accelerate ops**. Cost is PS99 rate limits only. Refreshes every `GLOBAL_INDEX_REFRESH_MS` while live (default 30 min), top `GLOBAL_INDEX_CLAN_LIMIT` clans (default 500).
+- **Global leaderboard** — Postgres singleton `GlobalPlayerIndexSnapshot` (poll writes, api reads; shared across Railway services). ~1 upsert / refresh + cached reads. PS99 fan-out is the real cost. Cadence: `GLOBAL_INDEX_REFRESH_MS` while live (default 30 min), top `GLOBAL_INDEX_CLAN_LIMIT` clans (default 500). Local JSON under `data/` is a mirror/fallback only.
 - **Leagues poll deferred** — quiet weeks later; idle path does not ingest leagues
 
 Upgrade Prisma plan later if you need sub-5-minute live polls.
@@ -54,7 +54,7 @@ Upgrade Prisma plan later if you need sub-5-minute live polls.
 | GET    | `/api/graphs`              | Points/rank series                               |
 | GET    | `/api/battle-archive`      | Past battles                                     |
 | GET    | `/api/leagues`             | League board (file/cache; no free-tier poll yet) |
-| GET    | `/api/global-leaderboard`  | Cross-clan players (JSON index; not Prisma snaps)|
+| GET    | `/api/global-leaderboard`  | Cross-clan players (Postgres index snapshot)     |
 | GET    | `/api/battle-rewards`      | Clan podium + PS99 placement rewards             |
 | GET    | `/api/registry`            | Staff registry                                   |
 
@@ -69,7 +69,7 @@ Upgrade Prisma plan later if you need sub-5-minute live polls.
 **Live:** batched `ClanBattleSnapshot` + changed `PlayerPointSnapshot` rows.  
 **Idle:** battle/clan upsert + archive only — no snap spam.  
 **Rewards:** `PlacementRewards` from active battle config written once to `Battle.rewardsJson`; `/api/battle-rewards` reads DB (cached).  
-**Global index (separate cadence):** while live, every `GLOBAL_INDEX_REFRESH_MS`, fan-out `/api/clans` + `/api/clan/{name}` for top N clans’ `PointContributions` → write `data/global-player-index.json`. Does **not** write Prisma player snaps. Fire-and-forget so it never blocks the 5‑min poll tick.
+**Global index (separate cadence):** while live, every `GLOBAL_INDEX_REFRESH_MS`, fan-out `/api/clans` + `/api/clan/{name}` for top N clans’ `PointContributions` → upsert `GlobalPlayerIndexSnapshot` (id=`current`). Does **not** write per-player Prisma snaps. Fire-and-forget so it never blocks the 5‑min poll tick.
 
 Logs each tick: `ops≈N` and `estimatedMonthlyOps≈N`.
 

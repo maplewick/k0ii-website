@@ -1,11 +1,13 @@
 /**
- * Cross-clan global player index — JSON file, zero Prisma Accelerate ops.
+ * Cross-clan global player index — Postgres singleton (shared poll ↔ api).
+ * Local JSON mirror kept for offline/dev fallback only.
  * Ports bot refreshGlobalPlayerIndex: top N clans × PointContributions.
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { Env } from "../env";
+import { prisma } from "../lib/prisma";
 import {
   fetchActiveClanBattle,
   fetchBattleDetail,
@@ -27,6 +29,8 @@ export type GlobalPlayerIndex = {
   players: Record<string, GlobalIndexPlayer>;
 };
 
+const SNAPSHOT_ID = "current";
+
 function dataDir(): string {
   return path.resolve(import.meta.dir, "../../../../data");
 }
@@ -38,29 +42,85 @@ export function globalIndexPath(): string {
 let inFlight = false;
 let memoryIndex: GlobalPlayerIndex | null = null;
 let memoryLoadedAt = 0;
-/** API process re-reads file periodically (poller writes from another process). */
+/** API process re-reads DB periodically (poller writes from another process). */
 const MEMORY_TTL_MS = 30_000;
 
-export async function loadGlobalPlayerIndex(): Promise<GlobalPlayerIndex | null> {
-  if (memoryIndex && Date.now() - memoryLoadedAt < MEMORY_TTL_MS) {
-    return memoryIndex;
-  }
+function asIndex(raw: unknown): GlobalPlayerIndex | null {
+  if (!raw || typeof raw !== "object") return null;
+  const parsed = raw as GlobalPlayerIndex;
+  if (!parsed.players || typeof parsed.battleId !== "string") return null;
+  if (typeof parsed.totalPlayers !== "number") return null;
+  return parsed;
+}
+
+async function loadFromFile(): Promise<GlobalPlayerIndex | null> {
   try {
     const raw = await readFile(globalIndexPath(), "utf8");
-    const parsed = JSON.parse(raw) as GlobalPlayerIndex;
-    if (!parsed?.players || typeof parsed.battleId !== "string") return null;
-    memoryIndex = parsed;
-    memoryLoadedAt = Date.now();
-    return parsed;
+    return asIndex(JSON.parse(raw));
   } catch {
     return null;
   }
 }
 
+async function mirrorToFile(index: GlobalPlayerIndex): Promise<void> {
+  try {
+    const dir = dataDir();
+    await mkdir(dir, { recursive: true });
+    await writeFile(globalIndexPath(), JSON.stringify(index), "utf8");
+  } catch (error) {
+    console.warn("[global-index] local file mirror skipped", error);
+  }
+}
+
+export async function loadGlobalPlayerIndex(): Promise<GlobalPlayerIndex | null> {
+  if (memoryIndex && Date.now() - memoryLoadedAt < MEMORY_TTL_MS) {
+    return memoryIndex;
+  }
+
+  try {
+    const row = await prisma.globalPlayerIndexSnapshot.findUnique({
+      where: { id: SNAPSHOT_ID },
+    });
+    const fromDb = asIndex(row?.payload);
+    if (fromDb) {
+      memoryIndex = fromDb;
+      memoryLoadedAt = Date.now();
+      return fromDb;
+    }
+  } catch (error) {
+    console.error("[global-index] DB read failed", error);
+  }
+
+  // Dev / first boot: hydrate from local file if DB empty.
+  const fromFile = await loadFromFile();
+  if (fromFile) {
+    memoryIndex = fromFile;
+    memoryLoadedAt = Date.now();
+    try {
+      await prisma.globalPlayerIndexSnapshot.upsert({
+        where: { id: SNAPSHOT_ID },
+        create: { id: SNAPSHOT_ID, payload: fromFile },
+        update: { payload: fromFile },
+      });
+      console.log(
+        `[global-index] seeded DB from local file (${fromFile.totalPlayers} players)`,
+      );
+    } catch (error) {
+      console.warn("[global-index] could not seed DB from file", error);
+    }
+    return fromFile;
+  }
+
+  return null;
+}
+
 async function saveGlobalPlayerIndex(index: GlobalPlayerIndex): Promise<void> {
-  const dir = dataDir();
-  await mkdir(dir, { recursive: true });
-  await writeFile(globalIndexPath(), JSON.stringify(index), "utf8");
+  await prisma.globalPlayerIndexSnapshot.upsert({
+    where: { id: SNAPSHOT_ID },
+    create: { id: SNAPSHOT_ID, payload: index },
+    update: { payload: index },
+  });
+  await mirrorToFile(index);
   memoryIndex = index;
   memoryLoadedAt = Date.now();
 }
@@ -83,8 +143,7 @@ export type GlobalIndexRefreshResult = {
 };
 
 /**
- * Rebuild global index when a battle is live. Keep last file between wars.
- * Does not touch Prisma.
+ * Rebuild global index when a battle is live. Persist to Postgres so api/web see it.
  */
 export async function refreshGlobalPlayerIndex(
   env: Env,
@@ -180,7 +239,7 @@ export async function refreshGlobalPlayerIndex(
 
     const durationMs = Date.now() - started;
     console.log(
-      `[global-index] ${battleId}: ${ranked.length} players across ${clanNames.length} clans in ${durationMs}ms`,
+      `[global-index] ${battleId}: ${ranked.length} players across ${clanNames.length} clans in ${durationMs}ms (postgres)`,
     );
 
     return {

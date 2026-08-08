@@ -102,7 +102,8 @@ Copy from local `.env.example` / your machine `.env` (never commit secrets):
 - Same build as api (or skip heavy build if image already has deps — simplest: duplicate api build)
 - Start: `cd apps/api && bun run poll`
 - No public domain needed
-- Needs writable volume **or** ephemeral disk for `data/global-player-index.json` / poll-stamp (demo OK if file resets on restart)
+- Global index lives in Postgres (`GlobalPlayerIndexSnapshot`) — no shared volume needed between poll and api
+- Optional local `data/` for poll-stamp / file mirrors only
 
 **web**
 
