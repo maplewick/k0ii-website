@@ -42,18 +42,25 @@ export function Wordmark({ className = "" }: { className?: string }) {
         className,
       )}
     >
-      <Image
-        src="/k0ii.png"
-        alt=""
-        width={64}
-        height={64}
-        priority
+      {/* The crest carries a "k0i2" wordmark across its bottom fifth, which is
+          unreadable at this size and just muddies the badge — the image is run
+          tall inside a clipped square so only the koi shows. */}
+      <span
         className={cn(
-          "mr-2 size-8 shrink-0 self-center rounded-lg object-cover sm:size-9",
+          "relative mr-2 size-8 shrink-0 self-center overflow-hidden rounded-lg sm:size-9",
           "ring-1 ring-[color-mix(in_srgb,var(--koi-orange)_35%,transparent)]",
           "shadow-[0_0_14px_-2px_color-mix(in_srgb,var(--koi-orange)_45%,transparent)]",
         )}
-      />
+      >
+        <Image
+          src="/k0i2-logo.jpg"
+          alt=""
+          width={128}
+          height={128}
+          priority
+          className="absolute inset-x-0 top-0 h-[128%] w-full object-cover object-top"
+        />
+      </span>
       <span className="inline-block">K</span>
       <span className="inline-block">0</span>
       <span className="inline-block">ii</span>
