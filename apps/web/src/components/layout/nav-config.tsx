@@ -42,25 +42,21 @@ export function Wordmark({ className = "" }: { className?: string }) {
         className,
       )}
     >
-      {/* The crest carries a "k0i2" wordmark across its bottom fifth, which is
-          unreadable at this size and just muddies the badge — the image is run
-          tall inside a clipped square so only the koi shows. */}
-      <span
+      {/* Pre-cropped square crest (the "k0i2" wordmark is already removed), so
+          this renders at its natural framing instead of being scaled up to hide
+          the text — which is what made it look zoomed in. */}
+      <Image
+        src="/k0i2-crest.png"
+        alt=""
+        width={128}
+        height={128}
+        priority
         className={cn(
-          "relative mr-2 size-8 shrink-0 self-center overflow-hidden rounded-lg sm:size-9",
+          "mr-2 size-8 shrink-0 self-center rounded-lg object-cover sm:size-9",
           "ring-1 ring-[color-mix(in_srgb,var(--koi-orange)_35%,transparent)]",
           "shadow-[0_0_14px_-2px_color-mix(in_srgb,var(--koi-orange)_45%,transparent)]",
         )}
-      >
-        <Image
-          src="/k0i2-logo.jpg"
-          alt=""
-          width={128}
-          height={128}
-          priority
-          className="absolute inset-x-0 top-0 h-[128%] w-full object-cover object-top"
-        />
-      </span>
+      />
       <span className="inline-block">K</span>
       <span className="inline-block">0</span>
       <span className="inline-block">ii</span>

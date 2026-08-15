@@ -26,6 +26,7 @@ import {
 import { formatNumber, formatPoints } from "@/lib/format";
 import { useBattleRewards, useRoster } from "@/lib/hooks/use-api";
 import { useClanBank } from "@/lib/hooks/use-clan-bank";
+import { useCountUp } from "@/lib/hooks/use-count-up";
 import { clanBattleGiveawayDisplay, clanBattlePodiumDisplay } from "@/lib/prize-copy";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +72,7 @@ function WhyJoinSection() {
         {/* Featured: Clan Bank */}
         <article
           className={cn(
-            "relative flex flex-col justify-between gap-8 overflow-hidden p-6 sm:p-8 lg:p-10",
+            "join-lift relative flex flex-col justify-between gap-8 overflow-hidden p-6 sm:p-8 lg:p-10",
             "bg-[linear-gradient(145deg,color-mix(in_srgb,var(--koi-orange)_18%,var(--card-surface)),var(--card-surface)_55%,color-mix(in_srgb,var(--pond-teal)_8%,var(--card-surface)))]",
             "border-b border-[color-mix(in_srgb,var(--pond-teal)_16%,transparent)] lg:border-b-0 lg:border-r",
           )}
@@ -118,7 +119,7 @@ function WhyJoinSection() {
               <li
                 key={item.title}
                 className={cn(
-                  "group relative flex gap-4 overflow-hidden p-5 sm:p-6",
+                  "join-lift group relative flex gap-4 overflow-hidden p-5 sm:p-6",
                   "transition-colors duration-200 ease-[var(--ease-out)]",
                   "[@media(hover:hover)_and_(pointer:fine)]:hover:bg-[color-mix(in_srgb,var(--card-surface-alt)_55%,transparent)]",
                   meta.accent === "lily" &&
@@ -449,12 +450,21 @@ const ROSTER_CAPACITY = 75;
 function TrophyStat({
   label,
   value,
+  countTo,
+  format,
   tone,
 }: {
   label: string;
-  value: string;
+  /** Static display value; ignored when `countTo` is given. */
+  value?: string;
+  countTo?: number | null;
+  format?: (n: number) => string;
   tone: string;
 }) {
+  const counted = useCountUp(countTo ?? null);
+  const shown =
+    countTo != null ? (format ?? ((n: number) => String(Math.round(n))))(counted) : value;
+
   return (
     <div>
       <dd
@@ -463,7 +473,7 @@ function TrophyStat({
           tone,
         )}
       >
-        {value}
+        {shown}
       </dd>
       <dt className="pond-label mt-1">{label}</dt>
     </div>
@@ -517,7 +527,10 @@ export function JoinPanel() {
               href={DISCORD_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(buttonVariants({ size: "lg" }), "w-full sm:flex-1")}
+              className={cn(
+                buttonVariants({ size: "lg" }),
+                "cta-pulse w-full sm:flex-1",
+              )}
             >
               Apply on Discord
             </a>
@@ -533,7 +546,7 @@ export function JoinPanel() {
           </div>
         </div>
 
-        <aside className="relative border-t border-[color-mix(in_srgb,var(--pond-teal)_16%,transparent)] bg-[color-mix(in_srgb,var(--card-surface-alt)_55%,var(--card-surface))] p-6 sm:p-8 lg:border-t-0 lg:border-l">
+        <aside className="join-lift relative border-t border-[color-mix(in_srgb,var(--pond-teal)_16%,transparent)] bg-[color-mix(in_srgb,var(--card-surface-alt)_55%,var(--card-surface))] p-6 sm:p-8 lg:border-t-0 lg:border-l">
           <Image
             src="/badges/koi-10.png"
             alt=""
@@ -548,24 +561,26 @@ export function JoinPanel() {
           <dl className="relative mt-4 grid grid-cols-2 gap-5 lg:grid-cols-1">
             <TrophyStat
               label="🥇 Top 3 Finishes"
-              value="2"
-              tone="text-[#f5c451] drop-shadow-[0_0_18px_rgba(245,196,81,0.45)]"
+              countTo={2}
+              tone="stat-grad-gold"
             />
             <TrophyStat
               label="🏆 Top 10 Finishes"
               value="10+"
-              tone="text-[#a5b4fc] drop-shadow-[0_0_18px_rgba(165,180,252,0.4)]"
+              tone="stat-grad-indigo"
             />
             {bank != null ? (
               <TrophyStat
                 label="💎 Clan Bank"
-                value={formatPoints(bank)}
-                tone="text-lily drop-shadow-[0_0_18px_color-mix(in_srgb,var(--lily-green)_45%,transparent)]"
+                countTo={bank}
+                format={formatPoints}
+                tone="stat-grad-lily"
               />
             ) : null}
             <TrophyStat
               label="🟢 Current Members"
-              value={formatNumber(memberCount ?? 0)}
+              countTo={memberCount}
+              format={(n) => formatNumber(Math.round(n))}
               tone="text-ink"
             />
           </dl>
