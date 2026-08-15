@@ -86,7 +86,15 @@ export function createApp(env: Env) {
 
   app.get("/api/battle-archive", async (c) => {
     try {
-      return c.json(await buildBattleArchiveResponse(env));
+      // Cached like the other builders. Uncached it stamped a fresh
+      // `generatedAt` per request, so the bytes differed every time and the
+      // proxy's ETag could never match — every poll re-sent the whole archive.
+      // Finished battles change once a war, so the normal window is ample.
+      return c.json(
+        await cachedJson("battle-archive", cacheMs, () =>
+          buildBattleArchiveResponse(env),
+        ),
+      );
     } catch (error) {
       console.error("[battle-archive]", error);
       return c.json({ error: "Failed to build battle archive" }, 500);
