@@ -155,7 +155,7 @@ export default function PrivacyPage() {
           className="pond-section-head animate-fade-rise max-w-xl"
           style={{ animationDelay: "120ms" }}
         >
-          <Heading as="h2">How it works</Heading>
+          <Heading as="h2">How It Works</Heading>
           <p className="text-base leading-relaxed text-ink-soft">
             Use, sharing, cookies, and how to get your data removed.
           </p>

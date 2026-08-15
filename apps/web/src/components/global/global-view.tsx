@@ -160,7 +160,7 @@ export function GlobalView() {
             </p>
           </div>
           <div>
-            <p className="pond-label">Ours here</p>
+            <p className="pond-label">Ours Here</p>
             <p className="mt-1 font-display text-2xl font-bold tabular-nums text-koi">
               {formatNumber(oursOnPage)}
             </p>

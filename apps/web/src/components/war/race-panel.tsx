@@ -350,7 +350,7 @@ export function RacePanel({
 
         <div className="flex items-start gap-3">
           <div className="text-right">
-            <p className="pond-label">Battle ends in</p>
+            <p className="pond-label">Battle Ends In</p>
             <p
               className={cn(
                 "mt-1 min-w-[9ch] font-display text-4xl font-bold tabular-nums tracking-tight text-ink sm:text-5xl",
@@ -397,7 +397,7 @@ export function RacePanel({
               accent="koi"
             />
             <GlanceCard
-              label="Projected finish"
+              label="Projected Finish"
               value={analysis ? formatOrdinal(analysis.projectedRank) : "n/a"}
               hint={
                 analysis
@@ -440,7 +440,7 @@ export function RacePanel({
               }
             />
             <StripStat
-              label="Time left"
+              label="Time Left"
               value={
                 msRemaining != null && msRemaining > 0
                   ? formatDuration(msRemaining)
@@ -471,7 +471,7 @@ export function RacePanel({
                     <th className="px-4 py-2.5 font-medium sm:px-5">Rank</th>
                     <th className="px-2 py-2.5 font-medium">Clan</th>
                     <th className="px-2 py-2.5 font-medium">Gap</th>
-                    <th className="px-2 py-2.5 font-medium">5m vs us</th>
+                    <th className="px-2 py-2.5 font-medium">5m vs Us</th>
                     <th className="px-4 py-2.5 font-medium sm:px-5">
                       Finish / cross
                     </th>
@@ -604,7 +604,7 @@ export function RacePanel({
                         )}
                       </div>
                       <div>
-                        <p className="pond-label">5m vs us</p>
+                        <p className="pond-label">5m vs Us</p>
                         {isUs ? (
                           <Signed value={our5m} />
                         ) : (
@@ -656,7 +656,7 @@ export function RacePanel({
           <section className="grid gap-4 lg:grid-cols-2">
             <div className="pond-card pond-pad space-y-4">
               <Heading as="h3" className="text-xl">
-                Finishing odds
+                Finishing Odds
               </Heading>
               {oddsRows.length ? (
                 <ul className="space-y-2.5">

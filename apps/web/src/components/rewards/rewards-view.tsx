@@ -371,7 +371,7 @@ export function RewardsView() {
           className="pond-section-head animate-fade-rise max-w-xl"
           style={{ animationDelay: "40ms" }}
         >
-          <Heading as="h2">Clan payouts</Heading>
+          <Heading as="h2">Clan Payouts</Heading>
           <p className="text-base leading-relaxed text-ink-soft">
             Funded by K0ii, on top of whatever the game awards.
           </p>
@@ -454,7 +454,7 @@ export function RewardsView() {
             className="pond-card animate-fade-rise pond-pad"
             style={{ animationDelay: "220ms" }}
           >
-            <Heading as="h3">Giveaway bands</Heading>
+            <Heading as="h3">Giveaway Bands</Heading>
             <p className="mt-1 max-w-xl text-sm text-ink-soft">
               Placement band sets which giveaway you enter. Awarded by the clan.
             </p>
@@ -520,7 +520,7 @@ export function RewardsView() {
           style={{ animationDelay: "120ms" }}
         >
           <div className="max-w-xl space-y-1">
-            <Heading as="h2">In-game rewards</Heading>
+            <Heading as="h2">In-Game Rewards</Heading>
             <p className="text-sm leading-relaxed text-ink-soft">
               Placement rewards from PS99. Top contributors claim the pet.
             </p>

@@ -256,7 +256,7 @@ function RivalCard({
             }
           />
           <Metric
-            label="5m vs us"
+            label="5m vs Us"
             value={hasClan ? formatSignedDelta(vsUs) : "-"}
             className={
               vsUs != null && vsUs > 0

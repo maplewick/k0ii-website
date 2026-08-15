@@ -39,7 +39,7 @@ export function CoverageSection({
     return (
       <div className="pond-card flex flex-col items-start gap-3 pond-pad">
         <Heading as="h3" className="text-xl">
-          Hourly coverage
+          Hourly Coverage
         </Heading>
         <p className="max-w-md text-sm text-ink-soft">
           Could not load battle series for coverage. Check the API, then try
@@ -81,7 +81,7 @@ export function CoverageSection({
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <Heading as="h2" className="text-2xl tracking-tight sm:text-3xl">
-            Hourly coverage
+            Hourly Coverage
           </Heading>
           <p className="max-w-lg text-sm text-ink-soft">
             When the clan produces points across the day. Switch timezone to match
@@ -95,13 +95,13 @@ export function CoverageSection({
           aria-pressed={local}
           onClick={() => setLocal((v) => !v)}
         >
-          {local ? "Local time" : "UTC"}
+          {local ? "Local Time" : "UTC"}
         </Button>
       </header>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="pond-card pond-pad sm:col-span-1">
-          <p className="pond-label">Best hour</p>
+          <p className="pond-label">Best Hour</p>
           <p className="mt-1 font-display text-2xl font-bold tabular-nums text-koi sm:text-3xl">
             {best ? best.label : "-"}
           </p>
@@ -110,7 +110,7 @@ export function CoverageSection({
           </p>
         </div>
         <div className="pond-card pond-pad">
-          <p className="pond-label">Quietest hour</p>
+          <p className="pond-label">Quietest Hour</p>
           <p className="mt-1 font-display text-2xl font-bold tabular-nums text-ink sm:text-3xl">
             {worst ? worst.label : "-"}
           </p>
@@ -119,7 +119,7 @@ export function CoverageSection({
           </p>
         </div>
         <div className="pond-card pond-pad bg-[linear-gradient(165deg,color-mix(in_srgb,var(--pond-teal)_12%,transparent),transparent_65%)]">
-          <p className="pond-label">Day total</p>
+          <p className="pond-label">Day Total</p>
           <p className="mt-1 font-display text-2xl font-bold tabular-nums text-pond-teal sm:text-3xl">
             {formatPoints(total)}
           </p>

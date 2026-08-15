@@ -180,7 +180,7 @@ export function GraphsSection({ embedded }: { embedded?: boolean }) {
           </div>
           {ours?.latestRank != null ? (
             <div className="pond-card min-w-[8.5rem] pond-pad text-right">
-              <p className="pond-label">Our rank</p>
+              <p className="pond-label">Our Rank</p>
               <p className="mt-1 font-display text-3xl font-bold tabular-nums text-koi">
                 #{ours.latestRank}
               </p>

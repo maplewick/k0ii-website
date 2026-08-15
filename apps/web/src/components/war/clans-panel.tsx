@@ -244,7 +244,7 @@ export function ClansPanel() {
 
         {ours ? (
           <div className="pond-card min-w-[10rem] pond-pad text-right">
-            <p className="pond-label">Our place</p>
+            <p className="pond-label">Our Place</p>
             <p className="mt-1 font-display text-4xl font-bold tabular-nums text-koi sm:text-5xl">
               {formatOrdinal(ours.rank)}
             </p>
@@ -258,7 +258,7 @@ export function ClansPanel() {
       {ours?.gapToNext != null && ours.rank > 1 ? (
         <div className="pond-card flex flex-wrap items-center justify-between gap-3 pond-pad">
           <div>
-            <p className="pond-label">Gap to next</p>
+            <p className="pond-label">Gap to Next</p>
             <p className="mt-1 font-display text-2xl font-bold text-ink">
               {formatPoints(ours.gapToNext)}
             </p>

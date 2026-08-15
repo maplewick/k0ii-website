@@ -82,7 +82,7 @@ export function HomePage({
         style={{ animationDelay: "50ms" }}
       >
         <div className="pond-section-head">
-          <Heading as="h2">Current battle</Heading>
+          <Heading as="h2">Current Battle</Heading>
           <p className="max-w-xl text-base leading-relaxed text-ink-soft">
             Clan stats from the latest war.
           </p>
@@ -95,7 +95,7 @@ export function HomePage({
         style={{ animationDelay: "90ms" }}
       >
         <div className="pond-section-head">
-          <Heading as="h2">Around the pond</Heading>
+          <Heading as="h2">Around the Pond</Heading>
           <p className="max-w-xl text-base leading-relaxed text-ink-soft">
             Everything for the fight, and what comes after.
           </p>

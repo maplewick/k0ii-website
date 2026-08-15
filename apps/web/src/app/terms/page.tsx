@@ -152,7 +152,7 @@ export default function TermsPage() {
           className="pond-section-head animate-fade-rise max-w-xl"
           style={{ animationDelay: "160ms" }}
         >
-          <Heading as="h2">How it works</Heading>
+          <Heading as="h2">How It Works</Heading>
           <p className="text-base leading-relaxed text-ink-soft">
             What K0ii is, linking, profiles, warranties, and when access ends.
           </p>

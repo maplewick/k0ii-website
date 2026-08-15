@@ -222,7 +222,7 @@ export function LeaguesView() {
             </p>
           </div>
           <div>
-            <p className="pond-label">Our rank</p>
+            <p className="pond-label">Our Rank</p>
             <p className="mt-1 font-display text-2xl font-bold tabular-nums text-koi">
               {oursTracked?.rank != null
                 ? `#${formatNumber(oursTracked.rank)}`

@@ -205,7 +205,7 @@ export function RosterClient({
             {hasBattle ? (
               <div className="text-left sm:text-right">
                 <p className="text-xs font-medium tracking-wide text-ink-soft uppercase">
-                  {live ? "Battle ends in" : "Battle status"}
+                  {live ? "Battle Ends In" : "Battle status"}
                 </p>
                 {live ? (
                   <BattleCountdown
@@ -248,7 +248,7 @@ export function RosterClient({
         </PanelErrorBoundary>
       ) : (
         <div className="pond-card pond-pad">
-          <Heading as="h2">Between wars</Heading>
+          <Heading as="h2">Between Wars</Heading>
           <p className="mt-2 text-sm text-ink-soft">
             No battle snapshot in the database yet. Once a war runs, final stats
             stay here after it ends.
@@ -258,7 +258,7 @@ export function RosterClient({
 
       <section className="pond-section animate-fade-rise" style={{ animationDelay: "40ms" }}>
         <div className="pond-section-head">
-          <Heading as="h2">Nearby clans</Heading>
+          <Heading as="h2">Nearby Clans</Heading>
           <p className="text-sm text-ink-soft">
             {live
               ? "Who we're chasing, and who's chasing us."

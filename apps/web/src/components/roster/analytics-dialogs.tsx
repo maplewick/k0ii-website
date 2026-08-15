@@ -90,7 +90,7 @@ export function AnalyticsDialogs({
 
   const title =
     kind === "forecast"
-      ? "Projected finish"
+      ? "Projected Finish"
       : kind === "rank"
         ? "Clan rank history"
         : kind === "gini"
@@ -124,7 +124,7 @@ export function AnalyticsDialogs({
             {projection ? (
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <Metric label="Projected finish" value={`#${projection.projectedRank}`} />
+                  <Metric label="Projected Finish" value={`#${projection.projectedRank}`} />
                   <Metric
                     label="Expected rank"
                     value={
@@ -376,7 +376,7 @@ export function BattleProjectionPanel({
     <section className="pond-card pond-pad space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-bold text-ink">Projected finish</h2>
+          <h2 className="font-display text-2xl font-bold text-ink">Projected Finish</h2>
           <p className="text-sm text-ink-soft">
             End-of-battle rank from current pace over time left.
           </p>
@@ -390,7 +390,7 @@ export function BattleProjectionPanel({
       </div>
       {projection ? (
         <div className="grid gap-3 sm:grid-cols-3">
-          <Metric label="Projected finish" value={`#${projection.projectedRank}`} />
+          <Metric label="Projected Finish" value={`#${projection.projectedRank}`} />
           <Metric
             label="Catch-up target"
             value={projection.target?.name ?? "-"}

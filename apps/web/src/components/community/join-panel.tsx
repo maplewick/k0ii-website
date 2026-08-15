@@ -184,7 +184,7 @@ function CompeteSection({
     <section className="pond-section">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Heading as="h2">What we compete for</Heading>
+          <Heading as="h2">What We Compete For</Heading>
           <p className="mt-2 max-w-xl text-sm text-ink-soft sm:text-base">
             Payout by final placement every clan battle.
           </p>
@@ -295,7 +295,7 @@ function CompeteSection({
 function CareerBadgesSection() {
   return (
     <section className="pond-section">
-      <Heading as="h2">Career badges</Heading>
+      <Heading as="h2">Career Badges</Heading>
       <p className="mt-2 max-w-xl text-sm text-ink-soft sm:text-base">
         Every battle upgrades your roster badge, Regular Koi to Rainbow Titanic.
       </p>
