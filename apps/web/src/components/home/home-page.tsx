@@ -72,20 +72,19 @@ export function HomePage({
           className="flex w-full animate-fade-rise justify-center"
           style={{ animationDelay: "70ms" }}
         >
-          {/* The badge art is only 150x150, so it is held near native size —
-              blown up to hero scale it visibly softens. A higher-resolution
-              render is the only way to make this bigger without losing detail. */}
+          {/* The clan koi from the browser tab, lifted off its blue tile so it
+              swims on the pond background instead of sitting in a square. Comes
+              from the 3072px source, so it stays sharp at hero scale. */}
           <Image
-            src="/badges/koi-2.png"
-            alt="Huge Koi Fish"
-            width={150}
-            height={150}
+            src="/hero-koi.png"
+            alt="K0ii koi"
+            width={779}
+            height={635}
             priority
-            unoptimized
             className={cn(
-              "w-full max-w-[11rem] object-contain sm:max-w-[12.5rem]",
+              "w-full max-w-[20rem] object-contain sm:max-w-[24rem] lg:max-w-[28rem]",
               "animate-badge-bob",
-              "drop-shadow-[0_18px_38px_color-mix(in_srgb,var(--pond-teal)_45%,transparent)]",
+              "drop-shadow-[0_22px_46px_color-mix(in_srgb,var(--pond-bg-to)_65%,transparent)]",
             )}
           />
         </div>
