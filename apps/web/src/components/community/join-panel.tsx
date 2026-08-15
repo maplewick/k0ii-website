@@ -515,7 +515,7 @@ export function JoinPanel() {
           </div>
           <div className="space-y-3">
             <Heading as="h2" className="pond-glow text-3xl leading-tight sm:text-4xl lg:text-[2.75rem]">
-              Come Make Clan Wars Fun Again
+              Come Make Clan Wars Fun Again!
             </Heading>
             <p className="max-w-md text-base leading-relaxed text-ink-soft">
               Competitive PS99 clan with bank access, war tooling, and a track
