@@ -25,6 +25,7 @@ import {
 } from "@/lib/join-content";
 import { formatNumber, formatPoints } from "@/lib/format";
 import { useBattleRewards, useRoster } from "@/lib/hooks/use-api";
+import { useClanBank } from "@/lib/hooks/use-clan-bank";
 import { clanBattleGiveawayDisplay, clanBattlePodiumDisplay } from "@/lib/prize-copy";
 import { cn } from "@/lib/utils";
 
@@ -442,14 +443,46 @@ function RequirementsSection() {
   );
 }
 
+/** Roster cap the clan runs to; the old join page used the same fallback. */
+const ROSTER_CAPACITY = 75;
+
+function TrophyStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: string;
+}) {
+  return (
+    <div>
+      <dd
+        className={cn(
+          "font-display text-3xl font-bold tabular-nums tracking-tight sm:text-4xl",
+          tone,
+        )}
+      >
+        {value}
+      </dd>
+      <dt className="pond-label mt-1">{label}</dt>
+    </div>
+  );
+}
+
 export function JoinPanel() {
   const { data } = useRoster({ refetchInterval: false });
   const { data: rewards } = useBattleRewards();
+  const { data: bank } = useClanBank();
 
   const podium = rewards?.podium?.length
     ? rewards.podium
     : clanBattlePodiumDisplay();
   const giveaway = rewards?.giveaway ?? clanBattleGiveawayDisplay();
+
+  const memberCount = data?.battle?.memberCount ?? data?.members.length ?? null;
+  const spotsOpen =
+    memberCount != null ? Math.max(0, ROSTER_CAPACITY - memberCount) : null;
 
   return (
     <div className="pond-chapters">
@@ -471,7 +504,7 @@ export function JoinPanel() {
             <Badge variant="secondary">Pet Simulator 99</Badge>
           </div>
           <div className="space-y-3">
-            <Heading as="h2" className="text-3xl leading-tight sm:text-4xl lg:text-[2.75rem]">
+            <Heading as="h2" className="pond-glow text-3xl leading-tight sm:text-4xl lg:text-[2.75rem]">
               Come make clan wars fun again
             </Heading>
             <p className="max-w-md text-base leading-relaxed text-ink-soft">
@@ -508,9 +541,38 @@ export function JoinPanel() {
             height={120}
             className="pointer-events-none absolute -right-2 -top-2 size-24 opacity-40 drop-shadow-md sm:size-28"
           />
-          <p className="pond-label relative">Clan right now</p>
+          <p className="pond-label relative">Track record</p>
+          {/* The old join page led with what the clan has actually won, not just
+              today's numbers — that is the part that sells it. Each figure gets
+              its own colour so the panel reads as a trophy case. */}
+          <dl className="relative mt-4 grid grid-cols-2 gap-5 lg:grid-cols-1">
+            <TrophyStat
+              label="🥇 Top 3 Finishes"
+              value="2"
+              tone="text-[#f5c451] drop-shadow-[0_0_18px_rgba(245,196,81,0.45)]"
+            />
+            <TrophyStat
+              label="🏆 Top 10 Finishes"
+              value="10+"
+              tone="text-[#a5b4fc] drop-shadow-[0_0_18px_rgba(165,180,252,0.4)]"
+            />
+            {bank != null ? (
+              <TrophyStat
+                label="💎 Clan Bank"
+                value={formatPoints(bank)}
+                tone="text-lily drop-shadow-[0_0_18px_color-mix(in_srgb,var(--lily-green)_45%,transparent)]"
+              />
+            ) : null}
+            <TrophyStat
+              label="🟢 Current Members"
+              value={formatNumber(memberCount ?? 0)}
+              tone="text-ink"
+            />
+          </dl>
+
+          <p className="pond-label relative mt-7">Clan right now</p>
           {data?.battle ? (
-            <dl className="relative mt-4 grid grid-cols-1 gap-5">
+            <dl className="relative mt-3 grid grid-cols-2 gap-4 lg:grid-cols-1">
               {(
                 [
                   {
@@ -524,29 +586,55 @@ export function JoinPanel() {
                     label: "Points",
                     value: formatPoints(data.battle.points),
                   },
-                  {
-                    label: "Members",
-                    value: formatNumber(
-                      data.battle.memberCount ?? data.members.length,
-                    ),
-                  },
                 ] as const
               ).map((cell) => (
                 <div key={cell.label}>
                   <dt className="text-xs font-medium text-ink-soft">{cell.label}</dt>
-                  <dd className="mt-0.5 font-display text-3xl font-bold tabular-nums tracking-tight text-koi sm:text-4xl">
+                  <dd className="mt-0.5 font-display text-2xl font-bold tabular-nums tracking-tight text-koi drop-shadow-[0_0_16px_color-mix(in_srgb,var(--koi-orange)_40%,transparent)] sm:text-3xl">
                     {cell.value}
                   </dd>
                 </div>
               ))}
             </dl>
           ) : (
-            <p className="relative mt-4 text-sm text-ink-soft">
+            <p className="relative mt-3 text-sm text-ink-soft">
               Between wars. Roster still open for applications.
             </p>
           )}
         </aside>
       </section>
+
+      {/* Live scarcity — the old page's strongest pull. Only shown when there is
+          genuinely room, so it never advertises a full roster. */}
+      {spotsOpen != null && spotsOpen > 0 ? (
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--radius-card)] px-5 py-3.5",
+            "bg-[color-mix(in_srgb,var(--lily-green)_14%,var(--card-surface))]",
+            "ring-1 ring-[color-mix(in_srgb,var(--lily-green)_32%,transparent)]",
+            "shadow-[0_0_28px_-6px_color-mix(in_srgb,var(--lily-green)_45%,transparent)]",
+          )}
+        >
+          <span
+            className="race-live-dot size-2 shrink-0 rounded-full bg-lily"
+            aria-hidden
+          />
+          <span className="text-sm font-semibold text-lily drop-shadow-[0_0_10px_color-mix(in_srgb,var(--lily-green)_50%,transparent)]">
+            {spotsOpen} spot{spotsOpen === 1 ? "" : "s"} open right now
+          </span>
+          <span className="text-sm text-ink-soft">
+            — {memberCount}/{ROSTER_CAPACITY} on the roster.
+          </span>
+          <a
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto text-sm font-semibold text-koi transition-colors hover:text-koi-deep"
+          >
+            Apply now →
+          </a>
+        </div>
+      ) : null}
 
       <WhyJoinSection />
 

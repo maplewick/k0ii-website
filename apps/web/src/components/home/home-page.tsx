@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -30,7 +29,7 @@ export function HomePage({
         <div className="max-w-2xl space-y-5 lg:space-y-6">
           <h1
             className={cn(
-              "font-display font-bold leading-none tracking-tight",
+              "font-display font-bold leading-none tracking-tight pond-glow",
               "text-[clamp(3.1rem,12vw,5.5rem)]",
             )}
           >
@@ -39,7 +38,7 @@ export function HomePage({
             <span className="text-ink">ii</span>
           </h1>
 
-          <p className="font-display text-[clamp(1.35rem,3.8vw,2rem)] font-semibold leading-snug tracking-tight text-ink">
+          <p className="pond-glow-teal font-display text-[clamp(1.35rem,3.8vw,2rem)] font-semibold leading-snug tracking-tight text-ink">
             Keep score while you grind.
           </p>
 
@@ -103,79 +102,6 @@ export function HomePage({
         <DestinationBento />
       </section>
 
-      <section
-        className={cn(
-          "pond-card relative overflow-hidden animate-fade-rise",
-          "bg-[linear-gradient(115deg,color-mix(in_srgb,var(--koi-orange)_14%,var(--card-surface)),var(--card-surface)_45%,color-mix(in_srgb,var(--pond-teal)_12%,var(--card-surface)))]",
-          "ring-1 ring-[color-mix(in_srgb,var(--koi-orange)_22%,transparent)]",
-        )}
-        style={{ animationDelay: "130ms" }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.18] mix-blend-soft-light"
-          style={{
-            backgroundImage: "url(/pond/caustics.png)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -right-16 top-1/2 size-56 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--koi-orange)_28%,transparent),transparent_70%)] blur-2xl"
-          aria-hidden
-        />
-
-        <div className="relative grid items-center gap-6 p-6 sm:gap-8 sm:p-8 lg:grid-cols-[1fr_auto] lg:gap-12 lg:p-10">
-          <div className="space-y-4 text-left">
-            <Heading as="h2" className="text-balance sm:text-[2rem]">
-              See the fight while it moves.
-            </Heading>
-            <p className="max-w-md text-base leading-relaxed text-ink-soft sm:text-lg">
-              Sort by pace, find carriers, and catch people slaking.
-            </p>
-            <Link
-              href="/roster"
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "mt-1 inline-flex w-full sm:w-auto",
-              )}
-            >
-              Jump to live battle
-              <ArrowRight aria-hidden />
-            </Link>
-          </div>
-
-          <div
-            className="relative mx-auto flex w-full max-w-[17rem] items-end justify-end sm:max-w-[19rem] lg:mx-0 lg:w-56"
-            aria-hidden
-          >
-            {/* Sits clear of the big koi rather than half-buried under it — it
-                should read as a second fish, not a smudge on the first. */}
-            <Image
-              src="/badges/koi-6.png"
-              alt=""
-              width={120}
-              height={120}
-              className={cn(
-                "absolute bottom-1 left-0 size-14 -rotate-12 opacity-70 sm:size-16",
-                "animate-badge-bob object-contain drop-shadow-md",
-              )}
-              style={{ animationDelay: "0.6s" }}
-            />
-            <Image
-              src="/badges/koi-8.png"
-              alt=""
-              width={180}
-              height={180}
-              className={cn(
-                "relative z-[1] size-28 rotate-6 object-contain sm:size-36 lg:size-40",
-                "animate-badge-bob",
-                "drop-shadow-[0_14px_30px_color-mix(in_srgb,var(--pond-teal)_40%,transparent)]",
-              )}
-            />
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

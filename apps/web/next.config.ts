@@ -42,6 +42,11 @@ function botRewrites() {
         source: "/api/bot-members",
         destination: `${botUpstream}/api/members`,
       },
+      // Clan bank balance for the join page — the bot owns the ledger.
+      {
+        source: "/api/bot-bank",
+        destination: `${botUpstream}/api/bank`,
+      },
     ],
     afterFiles: [
       // Fetched with the trailing slash the bot's static middleware wants, so it

@@ -357,7 +357,7 @@ export function RewardsView() {
   return (
     <div className="pond-page">
       <header className="animate-fade-rise pond-section-head space-y-3">
-        <Heading as="h1">
+        <Heading as="h1" className="pond-glow">
           Battle <span className="text-koi">Rewards</span>
         </Heading>
         <p className="pond-lede">

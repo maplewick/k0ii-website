@@ -643,3 +643,33 @@
     linear-gradient(rgba(8, 11, 18, 0.42), rgba(8, 11, 18, 0.42)),
     var(--roster-row-gif);
 }
+
+/* Text glow helpers. Kept as utilities so headings share one treatment instead
+   of each growing its own drop-shadow stack. The glow is tinted with the page
+   background in light mode and pure luminance in dark, so it reads as light
+   coming off the text rather than a grey halo. */
+.pond-glow {
+  text-shadow:
+    0 0 24px color-mix(in srgb, var(--koi-orange) 30%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pond-bg-to) 30%, transparent);
+}
+
+.dark .pond-glow {
+  text-shadow:
+    0 0 26px color-mix(in srgb, var(--koi-orange) 38%, transparent),
+    0 0 60px color-mix(in srgb, var(--koi-orange) 18%, transparent),
+    0 1px 3px rgb(0 0 0 / 45%);
+}
+
+.pond-glow-teal {
+  text-shadow:
+    0 0 22px color-mix(in srgb, var(--pond-teal) 32%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pond-bg-to) 30%, transparent);
+}
+
+.dark .pond-glow-teal {
+  text-shadow:
+    0 0 26px color-mix(in srgb, var(--pond-teal) 42%, transparent),
+    0 0 60px color-mix(in srgb, var(--pond-teal) 20%, transparent),
+    0 1px 3px rgb(0 0 0 / 45%);
+}

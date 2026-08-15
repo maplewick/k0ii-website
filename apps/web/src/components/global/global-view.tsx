@@ -132,7 +132,7 @@ export function GlobalView() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 pond-section-head">
           <div className="flex flex-wrap items-center gap-2.5">
-            <Heading as="h1">
+            <Heading as="h1" className="pond-glow">
               Global <span className="text-koi">Players</span>
             </Heading>
             <Badge variant="info">{formatNumber(total)} indexed</Badge>
