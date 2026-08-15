@@ -34,6 +34,36 @@ function readArchiveMember(row: Record<string, unknown>) {
   };
 }
 
+/**
+ * Per-member point series for a battle, keyed by Roblox id. Shared by the
+ * archived and live paths so a battle charts the same way either side of being
+ * archived.
+ */
+async function loadPlayerSeries(
+  env: Env,
+  battleId: string,
+): Promise<Map<string, Array<{ timestamp: number; value: number }>>> {
+  const snaps = await prisma.playerPointSnapshot.findMany({
+    where: { battleId, clanId: env.CLAN_NAME },
+    orderBy: { capturedAt: "asc" },
+  });
+
+  const byUser = new Map<string, Array<{ timestamp: number; value: number }>>();
+  for (const snap of snaps) {
+    const id = userIdToString(snap.robloxUserId);
+    const list = byUser.get(id) ?? [];
+    list.push({
+      timestamp: snap.capturedAt.getTime(),
+      value: Number(snap.battlePoints),
+    });
+    byUser.set(id, list);
+  }
+
+  const cleaned = new Map<string, Array<{ timestamp: number; value: number }>>();
+  for (const [id, series] of byUser) cleaned.set(id, buildCleanPointsSeries(series));
+  return cleaned;
+}
+
 async function resolveMemberNames(
   members: Array<{ robloxUserId: string; displayName: string }>,
 ): Promise<Record<string, string>> {
@@ -150,6 +180,16 @@ export async function buildBattleDetail(
       });
     }
 
+    // The archive JSON stores final standings only — no per-member series — so
+    // on its own this path renders a member dialog with an empty chart. Where we
+    // still hold snapshots for the battle, fold them back in; archived battles
+    // that predate snapshot collection simply keep an empty series.
+    const archivedSeries = await loadPlayerSeries(env, battleId);
+    const membersWithSeries = members.map((m) => ({
+      ...m,
+      series: archivedSeries.get(m.robloxUserId) ?? [],
+    }));
+
     return {
       battleId,
       title: battle.title,
@@ -159,7 +199,7 @@ export async function buildBattleDetail(
       ourRank: archive.ourRank,
       ourPoints: archive.ourPoints != null ? Number(archive.ourPoints) : null,
       medal: archive.medal,
-      members,
+      members: membersWithSeries,
     };
   }
 
