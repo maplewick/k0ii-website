@@ -514,7 +514,7 @@ export function JoinPanel() {
               {(
                 [
                   {
-                    label: "Live rank",
+                    label: "Live Rank",
                     value:
                       data.battle.rank != null
                         ? `#${formatNumber(data.battle.rank)}`

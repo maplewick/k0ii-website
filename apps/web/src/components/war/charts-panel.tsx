@@ -33,7 +33,7 @@ export function ChartsPanel({
               Charts
             </Heading>
             <Badge variant={live ? "success" : "secondary"}>
-              {live ? "Live battle" : "Last battle"}
+              {live ? "Live Battle" : "Last Battle"}
             </Badge>
           </div>
           <p className="text-sm text-ink-soft">

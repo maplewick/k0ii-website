@@ -8,6 +8,8 @@ export const NAV_LINKS = [
   { href: "/battle-rewards", label: "Rewards" },
   { href: "/leagues", label: "Leagues" },
   { href: "/community", label: "Community" },
+  // Served by the bot through the BOT_UPSTREAM_URL proxy — 404s until that is set.
+  { href: "/profile", label: "Profile" },
 ] as const;
 
 export const MORE_LINKS = [

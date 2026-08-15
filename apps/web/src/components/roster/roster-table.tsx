@@ -60,8 +60,8 @@ export const MOBILE_SORT_OPTIONS: { key: RosterSortKey; label: string }[] = [
   { key: "pph", label: "PPH" },
   { key: "delta5m", label: "5m" },
   { key: "inactiveMs", label: "Inactive" },
-  { key: "streakPeakMs", label: "Best streak" },
-  { key: "avgPlacement", label: "Avg place" },
+  { key: "streakPeakMs", label: "Best Streak" },
+  { key: "avgPlacement", label: "Avg Place" },
   { key: "displayName", label: "Name" },
   { key: "rank", label: "Rank" },
 ];

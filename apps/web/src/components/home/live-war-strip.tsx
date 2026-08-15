@@ -116,7 +116,7 @@ export function LiveWarStrip({
         },
         { label: "PPH", value: formatPph(battle.pph) },
         {
-          label: "5m pace",
+          label: "5m Pace",
           value: formatSignedDelta(battle.delta5m),
           tone: battle.delta5m,
         },

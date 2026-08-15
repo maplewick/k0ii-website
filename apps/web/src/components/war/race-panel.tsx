@@ -340,7 +340,7 @@ export function RacePanel({
             {battle?.title?.trim()
               ? battle.title
               : live
-                ? "Live battle"
+                ? "Live Battle"
                 : "Between wars"}
             {" · "}
             updated {formatRelativeTime(data.generatedAt)}
@@ -391,7 +391,7 @@ export function RacePanel({
         <>
           <section className="grid gap-3 md:grid-cols-2">
             <GlanceCard
-              label="Live rank"
+              label="Live Rank"
               value={formatOrdinal(liveRank)}
               hint={`${formatPoints(ourPoints)} pts`}
               accent="koi"

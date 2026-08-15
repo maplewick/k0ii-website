@@ -29,7 +29,7 @@ type Tile = {
 
 const TILES: Tile[] = [
   {
-    title: "Live battle",
+    title: "Live Battle",
     description: "See who's on the board and how the clan is scoring.",
     href: "/roster",
     icon: Swords,

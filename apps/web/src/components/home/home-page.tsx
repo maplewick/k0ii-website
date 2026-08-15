@@ -35,7 +35,7 @@ export function HomePage({
             )}
           >
             <span className="text-ink">K</span>
-            <span className="text-koi">0</span>
+            <span className="text-ink">0</span>
             <span className="text-ink">ii</span>
           </h1>
 

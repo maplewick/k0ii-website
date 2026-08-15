@@ -522,7 +522,7 @@ export function ReplayPanel({
                             { label: "#", align: "left" as const, w: "w-12" },
                             { label: "Player", align: "left" as const },
                             { label: "Pace", align: "left" as const },
-                            { label: "Vs finish", align: "right" as const },
+                            { label: "Vs Finish", align: "right" as const },
                             { label: "Points", align: "right" as const },
                           ] as const
                         ).map((col) => (
