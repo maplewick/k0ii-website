@@ -7,6 +7,54 @@ const monorepoRoot = path.join(
   "../..",
 );
 
+/**
+ * Parts of k0ii.com are still served by the Discord bot, which this rewrite does
+ * not reimplement: the self-service profile editor, the officer dashboard, the
+ * OG share cards Discord unfurls, and avatar decoration media.
+ *
+ * They are proxied rather than linked out because the bot's login cookie is
+ * `secure` + `sameSite=lax` — it only survives if the browser sees one origin.
+ * Point BOT_UPSTREAM_URL at the bot service; leave it unset and these paths
+ * simply 404 as they do today.
+ */
+const botUpstream = process.env.BOT_UPSTREAM_URL?.replace(/\/$/, "");
+
+function botRewrites() {
+  if (!botUpstream) return { beforeFiles: [], afterFiles: [] };
+
+  return {
+    // Must beat the `/api/[...path]` catch-all, which forwards to the stats API.
+    // Profile and officer data still come from the bot, so they are matched
+    // before the filesystem route gets a chance to claim them.
+    beforeFiles: [
+      {
+        source: "/api/profile/:path*",
+        destination: `${botUpstream}/api/profile/:path*`,
+      },
+      {
+        source: "/api/officer/:path*",
+        destination: `${botUpstream}/api/officer/:path*`,
+      },
+    ],
+    afterFiles: [
+      // Fetched with the trailing slash the bot's static middleware wants, so it
+      // answers 200 instead of 301-ing to `/profile/` — which Next would bounce
+      // straight back to `/profile`, looping forever. The browser URL stays
+      // slashless, so those pages must reference their assets by absolute path.
+      { source: "/profile", destination: `${botUpstream}/profile/` },
+      { source: "/profile/:path*", destination: `${botUpstream}/profile/:path*` },
+      { source: "/officer", destination: `${botUpstream}/officer/` },
+      { source: "/officer/:path*", destination: `${botUpstream}/officer/:path*` },
+      // The one-time login links the bot's /profile command hands out.
+      { source: "/auth/:path*", destination: `${botUpstream}/auth/:path*` },
+      { source: "/card/:path*", destination: `${botUpstream}/card/:path*` },
+      { source: "/media/:path*", destination: `${botUpstream}/media/:path*` },
+      // Those two pages pull shared CSS and JS from /lib.
+      { source: "/lib/:path*", destination: `${botUpstream}/lib/:path*` },
+    ],
+  };
+}
+
 const nextConfig: NextConfig = {
   transpilePackages: ["@k0ii/schemas"],
   turbopack: {
@@ -63,6 +111,10 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
     ];
+  },
+  async rewrites() {
+    const { beforeFiles, afterFiles } = botRewrites();
+    return { beforeFiles, afterFiles, fallback: [] };
   },
 };
 

@@ -46,9 +46,9 @@ export function Wordmark({ className = "" }: { className?: string }) {
       </span>
       <span
         className={cn(
-          "inline-block text-koi",
+          "inline-block text-ink",
           "transition-[color,transform] duration-200 ease-[var(--ease-out)] motion-reduce:transition-none",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:text-ink",
+          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:text-koi",
           "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:-translate-y-1",
           "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:scale-110",
         )}

@@ -22,7 +22,7 @@ const body = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "KOii Clan Tracker",
+  title: "K0ii Clan Tracker",
   description: "Live PS99 clan war roster for K0i2",
 };
 
