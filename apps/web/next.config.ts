@@ -35,13 +35,10 @@ function botRewrites() {
         source: "/api/officer/:path*",
         destination: `${botUpstream}/api/officer/:path*`,
       },
-      // Per-member customisation (avatar frames, decorations, colours, medals)
-      // lives only in the bot. `/api/members` already belongs to the stats API,
-      // so the bot's roster is exposed under its own name.
-      {
-        source: "/api/bot-members",
-        destination: `${botUpstream}/api/members`,
-      },
+      // NOTE: /api/bot-members is deliberately NOT rewritten. It is served by a
+      // route handler that trims the bot's payload to the fields the roster
+      // paints and revalidates with an ETag — a passthrough rewrite inherited
+      // the bot's `no-store`, forcing a full ~100KB download every poll.
       // Clan bank balance for the join page — the bot owns the ledger.
       {
         source: "/api/bot-bank",
