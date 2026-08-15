@@ -195,7 +195,7 @@ export function RosterClient({
               </Badge>
               {battle?.lastBattleRank != null ? (
                 <Badge variant="secondary">
-                  Last battle #{battle.lastBattleRank}
+                  Last Battle #{battle.lastBattleRank}
                 </Badge>
               ) : null}
             </div>

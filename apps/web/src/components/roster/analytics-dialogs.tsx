@@ -158,7 +158,7 @@ export function AnalyticsDialogs({
           <div className="space-y-3">
             <Metric label="Current rank" value={battle?.rank != null ? `#${battle.rank}` : "-"} />
             <Metric
-              label="Last battle rank"
+              label="Last Battle Rank"
               value={battle?.lastBattleRank != null ? `#${battle.lastBattleRank}` : "-"}
             />
             <RankSpark series={battle?.rankSeries ?? []} />

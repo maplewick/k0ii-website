@@ -11,9 +11,9 @@ export function hasBattleSnapshot(
 export function battleBadgeLabel(
   battle: BattleSummary | null | undefined,
 ): string {
-  if (!battle) return "Between wars";
-  if (battle.live) return "Live battle";
-  return "Battle ended";
+  if (!battle) return "Between Wars";
+  if (battle.live) return "Live Battle";
+  return "Battle Ended";
 }
 
 export function battleBadgeVariant(

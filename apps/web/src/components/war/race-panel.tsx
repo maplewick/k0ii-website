@@ -341,7 +341,7 @@ export function RacePanel({
               ? battle.title
               : live
                 ? "Live Battle"
-                : "Between wars"}
+                : "Between Wars"}
             {" · "}
             updated {formatRelativeTime(data.generatedAt)}
             {isFetching ? " · refreshing" : " · every 30s"}

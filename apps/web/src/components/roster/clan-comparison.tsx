@@ -231,7 +231,7 @@ function RivalCard({
             label="ETA"
             value={
               !live && hasClan
-                ? "Battle ended"
+                ? "Battle Ended"
                 : hasClan
                   ? formatPassEta(clan!.etaSeconds)
                   : "-"

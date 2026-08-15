@@ -235,7 +235,7 @@ export function ClansPanel() {
             </Badge>
           </div>
           <p className="text-sm text-ink-soft">
-            {data.battleId ? data.battleId : live ? "Live war" : "Between wars"}
+            {data.battleId ? data.battleId : live ? "Live War" : "Between Wars"}
             {" · "}
             updated {formatRelativeTime(data.generatedAt)}
             {isFetching ? " · refreshing" : " · every 30s"}
