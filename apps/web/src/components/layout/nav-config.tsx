@@ -30,44 +30,20 @@ export function Wordmark({ className = "" }: { className?: string }) {
       className={cn(
         "group/wordmark inline-flex items-baseline font-display font-bold leading-none tracking-tight text-ink",
         "text-[1.7rem] sm:text-[1.95rem]",
-        "transition-transform duration-200 ease-[var(--ease-out)]",
-        "active:scale-[0.97] motion-reduce:active:scale-100",
+        // One motion for the whole wordmark. It used to lift each letter by a
+        // different amount on its own delay, which read as three things moving
+        // rather than one logo.
+        "transition-[color,transform] duration-200 ease-[var(--ease-out)]",
+        "[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5",
+        "[@media(hover:hover)_and_(pointer:fine)]:hover:text-koi",
+        "active:scale-[0.97] motion-reduce:active:scale-100 motion-reduce:transition-none",
         "focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-koi focus-visible:ring-offset-2 focus-visible:ring-offset-card-surface",
         className,
       )}
     >
-      <span
-        className={cn(
-          "inline-block text-ink",
-          "transition-[color,transform] duration-200 ease-[var(--ease-out)] motion-reduce:transition-none",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:text-koi",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:-translate-y-px",
-        )}
-      >
-        K
-      </span>
-      <span
-        className={cn(
-          "inline-block text-ink",
-          "transition-[color,transform] duration-200 ease-[var(--ease-out)] motion-reduce:transition-none",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:text-koi",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:-translate-y-1",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:scale-110",
-        )}
-      >
-        0
-      </span>
-      <span
-        className={cn(
-          "inline-block text-ink",
-          "transition-[color,transform] duration-200 ease-[var(--ease-out)] motion-reduce:transition-none",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:text-koi",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:-translate-y-px",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover/wordmark:delay-75",
-        )}
-      >
-        ii
-      </span>
+      <span className="inline-block">K</span>
+      <span className="inline-block">0</span>
+      <span className="inline-block">ii</span>
     </Link>
   );
 }

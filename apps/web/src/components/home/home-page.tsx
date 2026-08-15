@@ -146,16 +146,18 @@ export function HomePage({
           </div>
 
           <div
-            className="relative mx-auto flex w-full max-w-[14rem] items-end justify-center sm:max-w-[16rem] lg:mx-0 lg:w-44"
+            className="relative mx-auto flex w-full max-w-[17rem] items-end justify-end sm:max-w-[19rem] lg:mx-0 lg:w-56"
             aria-hidden
           >
+            {/* Sits clear of the big koi rather than half-buried under it — it
+                should read as a second fish, not a smudge on the first. */}
             <Image
               src="/badges/koi-6.png"
               alt=""
               width={120}
               height={120}
               className={cn(
-                "absolute left-2 top-2 size-16 -rotate-12 opacity-70 sm:size-20",
+                "absolute bottom-1 left-0 size-14 -rotate-12 opacity-70 sm:size-16",
                 "animate-badge-bob object-contain drop-shadow-md",
               )}
               style={{ animationDelay: "0.6s" }}

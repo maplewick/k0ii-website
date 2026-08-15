@@ -33,7 +33,7 @@ export function SiteFooter() {
               )}
             >
               <span className="text-ink">K</span>
-              <span className="text-koi">0</span>
+              <span className="text-ink">0</span>
               <span className="text-ink">ii</span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-ink-soft sm:text-base">
