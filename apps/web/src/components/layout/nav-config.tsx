@@ -42,11 +42,14 @@ export function Wordmark({ className = "" }: { className?: string }) {
         className,
       )}
     >
-      {/* Pre-cropped square crest (the "k0i2" wordmark is already removed), so
+      {/* Versioned filename on purpose: Next serves optimised images with an
+          immutable cache header, so replacing the file in place leaves browsers
+          showing the old framing.
+          Pre-cropped square crest (the "k0i2" wordmark is already removed), so
           this renders at its natural framing instead of being scaled up to hide
           the text — which is what made it look zoomed in. */}
       <Image
-        src="/k0i2-crest.png"
+        src="/k0i2-crest-v2.png"
         alt=""
         width={128}
         height={128}

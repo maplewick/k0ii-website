@@ -1,9 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Heading } from "@/components/layout/heading";
 import { DestinationBento } from "@/components/home/destination-bento";
-import { HeroKoiStack } from "@/components/home/hero-koi-stack";
 import { LiveWarStrip } from "@/components/home/live-war-strip";
 import { buttonVariants } from "@/components/ui/button";
 import type { RosterResponse } from "@k0ii/schemas";
@@ -69,10 +69,21 @@ export function HomePage({
         </div>
 
         <div
-          className="w-full animate-fade-rise"
+          className="flex w-full animate-fade-rise justify-center"
           style={{ animationDelay: "70ms" }}
         >
-          <HeroKoiStack />
+          <Image
+            src="/badges/koi-2.png"
+            alt="Huge Koi Fish"
+            width={640}
+            height={640}
+            priority
+            className={cn(
+              "w-full max-w-[18rem] object-contain sm:max-w-[22rem] lg:max-w-[26rem]",
+              "animate-badge-bob",
+              "drop-shadow-[0_18px_38px_color-mix(in_srgb,var(--pond-teal)_45%,transparent)]",
+            )}
+          />
         </div>
       </section>
 
