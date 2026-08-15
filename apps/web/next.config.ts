@@ -35,6 +35,13 @@ function botRewrites() {
         source: "/api/officer/:path*",
         destination: `${botUpstream}/api/officer/:path*`,
       },
+      // Per-member customisation (avatar frames, decorations, colours, medals)
+      // lives only in the bot. `/api/members` already belongs to the stats API,
+      // so the bot's roster is exposed under its own name.
+      {
+        source: "/api/bot-members",
+        destination: `${botUpstream}/api/members`,
+      },
     ],
     afterFiles: [
       // Fetched with the trailing slash the bot's static middleware wants, so it

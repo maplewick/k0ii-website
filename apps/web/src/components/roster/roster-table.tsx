@@ -16,9 +16,10 @@ import {
   formatPph,
   formatSignedDelta,
 } from "@/lib/format";
-import { httpsOnlyUrl } from "@/lib/https-url";
 import { relativeToneClass, TONE_CLASS_MAP } from "@/lib/tones";
 import { cn } from "@/lib/utils";
+import { MemberAvatar } from "@/components/roster/member-avatar";
+import { useCustomizations } from "@/lib/hooks/use-customizations";
 
 export type RosterSortKey =
   | "rank"
@@ -193,33 +194,39 @@ function PlayerCell({
 }: {
   member: RosterMember;
 }) {
-  const avatarUrl = httpsOnlyUrl(member.avatarUrl);
-  const initial = member.displayName.trim().slice(0, 1).toUpperCase() || "?";
+  const { data: customizations } = useCustomizations();
+  const custom = customizations?.[String(member.robloxUserId)] ?? null;
+  // Falls back to the plain role line when nobody has set a title or status.
+  const subtitle = custom?.customTitle ?? custom?.status ?? member.role;
+
   return (
     <div className="flex min-w-0 max-w-[220px] items-center gap-2.5">
-      <span className="relative inline-flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1f2937] ring-1 ring-[color-mix(in_srgb,var(--pond-teal)_28%,transparent)]">
-        {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt=""
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            className="size-full rounded-full object-cover"
-          />
-        ) : (
-          <span className="font-display text-xs font-bold text-koi" aria-hidden>
-            {initial}
-          </span>
-        )}
-      </span>
+      <MemberAvatar
+        avatarUrl={member.avatarUrl}
+        displayName={member.displayName}
+        customization={custom}
+      />
       <div className="min-w-0">
-        <div className="truncate font-display text-sm font-semibold leading-tight text-ink">
-          {member.displayName}
+        <div className="flex min-w-0 items-center gap-1">
+          <span
+            style={custom?.nameColor ? { color: custom.nameColor } : undefined}
+            className="truncate font-display text-sm font-semibold leading-tight text-ink"
+          >
+            {member.displayName}
+          </span>
+          {custom?.bestMedal?.emoji ? (
+            <span
+              title={custom.bestMedal.label}
+              aria-label={custom.bestMedal.label}
+              className="shrink-0 text-[11px] leading-none"
+            >
+              {custom.bestMedal.emoji}
+            </span>
+          ) : null}
         </div>
-        {member.role ? (
+        {subtitle ? (
           <div className="truncate text-[11px] leading-snug text-ink-soft">
-            {member.role}
+            {subtitle}
           </div>
         ) : null}
       </div>

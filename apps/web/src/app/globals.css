@@ -531,3 +531,85 @@
     transform: none !important;
   }
 }
+
+/* ── Member avatar customisation ────────────────────────────────────────────
+   Ported from the bot-served roster. `.koi-avatar` keeps overflow:hidden so the
+   portrait stays in its circle, which means any frame drawn *inside* it gets
+   clipped: dashed/double use the inset ::after, while glow/pulse/crown paint
+   outward with a box-shadow on the element itself. Removing the clip to "fix"
+   a glow instead lets the avatar image escape its circle. */
+.koi-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.koi-avatar[data-frame="dashed"]::after {
+  border: 2px dashed var(--row-accent, var(--koi-orange));
+  opacity: 0.85;
+}
+
+.koi-avatar[data-frame="double"]::after {
+  box-shadow:
+    inset 0 0 0 2px var(--row-accent, var(--koi-orange)),
+    inset 0 0 0 5px rgba(255, 255, 255, 0.5);
+  opacity: 0.8;
+}
+
+.koi-avatar[data-frame="glow"] {
+  box-shadow:
+    0 0 0 2px var(--row-accent, var(--koi-orange)),
+    0 0 12px 3px var(--row-accent, var(--koi-orange));
+}
+
+.koi-avatar[data-frame="pulse"] {
+  box-shadow:
+    0 0 0 2px var(--row-accent, var(--koi-orange)),
+    0 0 12px 3px var(--row-accent, var(--koi-orange));
+  animation: koi-avatar-pulse 1.8s ease-in-out infinite;
+}
+
+.koi-avatar[data-frame="crown"] {
+  box-shadow:
+    0 0 0 2px #fbbf24,
+    0 0 14px 4px rgba(251, 191, 36, 0.55);
+}
+
+@keyframes koi-avatar-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--row-accent, var(--koi-orange)),
+      0 0 8px 2px var(--row-accent, var(--koi-orange));
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--row-accent, var(--koi-orange)),
+      0 0 16px 5px var(--row-accent, var(--koi-orange));
+  }
+}
+
+/* Decorations overhang the portrait, so this sits outside the clipped wrapper.
+   The cutout mask punches out the middle for frame-style decorations that would
+   otherwise cover the face. */
+.koi-avatar-decoration {
+  /* `max-width: none` is load-bearing: the preflight reset caps images at 100%
+     of their container, which silently pins the decoration to the avatar's
+     size and cancels the overhang the negative inset is asking for. */
+  max-width: none;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
+}
+
+.koi-avatar-decoration[data-size="lg"] {
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+}
+
+.koi-avatar-decoration[data-cutout] {
+  -webkit-mask-image: radial-gradient(circle, transparent 0 46%, #000 47%);
+  mask-image: radial-gradient(circle, transparent 0 46%, #000 47%);
+}

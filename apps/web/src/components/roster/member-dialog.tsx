@@ -37,7 +37,8 @@ import {
   formatPph,
   formatSignedDelta,
 } from "@/lib/format";
-import { httpsOnlyUrl } from "@/lib/https-url";
+import { MemberAvatar } from "@/components/roster/member-avatar";
+import { useCustomizations } from "@/lib/hooks/use-customizations";
 import { cn } from "@/lib/utils";
 
 type ChartMode = "points" | "pph";
@@ -83,45 +84,60 @@ export function MemberDialog({
   const pphVsClan =
     member?.pph != null && avgPph != null ? member.pph - avgPph : null;
 
+  // Above the early return — hooks cannot run conditionally.
+  const { data: customizations } = useCustomizations();
+
   if (!member) return null;
 
   const ppd =
     member.pph != null && Number.isFinite(member.pph) ? member.pph * 24 : null;
   const profileUrl = `https://www.roblox.com/users/${encodeURIComponent(member.robloxUserId)}/profile`;
-  const avatarUrl = httpsOnlyUrl(member.avatarUrl);
-  const initial = member.displayName.trim().slice(0, 1).toUpperCase() || "?";
+  const custom = customizations?.[String(member.robloxUserId)] ?? null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(dialogContentClass, "sm:max-w-5xl")}>
         <DialogHeader className="gap-3 pr-10">
           <div className="flex items-center gap-3">
-            <span className="relative inline-flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1f2937] ring-2 ring-[color-mix(in_srgb,var(--koi-orange)_45%,transparent)] shadow-[var(--shadow-button)]">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarUrl}
-                  alt=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  className="size-full rounded-full object-cover"
-                />
-              ) : (
-                <span className="font-display text-2xl font-bold text-koi" aria-hidden>
-                  {initial}
-                </span>
-              )}
-            </span>
+            <MemberAvatar
+              avatarUrl={member.avatarUrl}
+              displayName={member.displayName}
+              customization={custom}
+              size="lg"
+            />
             <div className="min-w-0">
-              <DialogTitle className="truncate font-display text-2xl font-bold text-ink">
+              <DialogTitle
+                style={custom?.nameColor ? { color: custom.nameColor } : undefined}
+                className="truncate font-display text-2xl font-bold text-ink"
+              >
                 {member.displayName}
+                {custom?.bestMedal?.emoji ? (
+                  <span
+                    title={custom.bestMedal.label}
+                    className="ml-1.5 text-lg"
+                    aria-label={custom.bestMedal.label}
+                  >
+                    {custom.bestMedal.emoji}
+                  </span>
+                ) : null}
               </DialogTitle>
               <DialogDescription className="text-sm text-ink-soft">
-                {member.role
-                  ? `${member.role} · roster stats`
-                  : "Roster stats for this battle"}
+                {custom?.customTitle ??
+                  custom?.status ??
+                  (member.role
+                    ? `${member.role} · roster stats`
+                    : "Roster stats for this battle")}
               </DialogDescription>
             </div>
+            {custom?.careerBadge ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={custom.careerBadge.image}
+                alt={custom.careerBadge.label}
+                title={custom.careerBadge.label}
+                className="ml-auto size-10 shrink-0 object-contain"
+              />
+            ) : null}
           </div>
         </DialogHeader>
 
