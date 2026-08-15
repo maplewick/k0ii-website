@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
@@ -41,6 +42,18 @@ export function Wordmark({ className = "" }: { className?: string }) {
         className,
       )}
     >
+      <Image
+        src="/k0ii.png"
+        alt=""
+        width={64}
+        height={64}
+        priority
+        className={cn(
+          "mr-2 size-8 shrink-0 self-center rounded-lg object-cover sm:size-9",
+          "ring-1 ring-[color-mix(in_srgb,var(--koi-orange)_35%,transparent)]",
+          "shadow-[0_0_14px_-2px_color-mix(in_srgb,var(--koi-orange)_45%,transparent)]",
+        )}
+      />
       <span className="inline-block">K</span>
       <span className="inline-block">0</span>
       <span className="inline-block">ii</span>

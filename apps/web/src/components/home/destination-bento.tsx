@@ -44,6 +44,7 @@ const TILES: Tile[] = [
     external: true,
     icon: MessageCircle,
     accent: "teal",
+    art: "/badges/koi-3.png",
   },
   {
     title: "History",
@@ -51,6 +52,7 @@ const TILES: Tile[] = [
     href: "/history",
     icon: History,
     accent: "teal",
+    art: "/badges/koi-5.png",
   },
   {
     title: "Rewards",
@@ -58,6 +60,7 @@ const TILES: Tile[] = [
     href: "/battle-rewards",
     icon: Gift,
     accent: "koi",
+    art: "/badges/koi-9.png",
   },
   {
     title: "Leagues",
@@ -65,6 +68,7 @@ const TILES: Tile[] = [
     href: "/leagues",
     icon: Trophy,
     accent: "lily",
+    art: "/badges/koi-7.png",
   },
   {
     title: "Community",
@@ -72,6 +76,7 @@ const TILES: Tile[] = [
     href: "/community",
     icon: Users,
     accent: "teal",
+    art: "/badges/koi-2.png",
   },
 ];
 
