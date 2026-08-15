@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Heading } from "@/components/layout/heading";
 import { DestinationBento } from "@/components/home/destination-bento";
+import { HeroKoiStack } from "@/components/home/hero-koi-stack";
 import { LiveWarStrip } from "@/components/home/live-war-strip";
 import { buttonVariants } from "@/components/ui/button";
 import type { RosterResponse } from "@k0ii/schemas";
@@ -69,24 +69,10 @@ export function HomePage({
         </div>
 
         <div
-          className="flex w-full animate-fade-rise justify-center"
+          className="w-full animate-fade-rise"
           style={{ animationDelay: "70ms" }}
         >
-          {/* The clan koi from the browser tab, lifted off its blue tile so it
-              swims on the pond background instead of sitting in a square. Comes
-              from the 3072px source, so it stays sharp at hero scale. */}
-          <Image
-            src="/hero-koi.png"
-            alt="K0ii koi"
-            width={779}
-            height={635}
-            priority
-            className={cn(
-              "w-full max-w-[20rem] object-contain sm:max-w-[24rem] lg:max-w-[28rem]",
-              "animate-badge-bob",
-              "drop-shadow-[0_22px_46px_color-mix(in_srgb,var(--pond-bg-to)_65%,transparent)]",
-            )}
-          />
+          <HeroKoiStack />
         </div>
       </section>
 
