@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
 
 import { DISCORD_URL } from "@/components/layout/nav-config";
 import { Heading } from "@/components/layout/heading";
@@ -25,10 +24,6 @@ const COLLECT = [
     body: "Your Roblox user ID, username, and in-game clan/battle statistics, sourced from public APIs and Bloxlink for roster members.",
   },
   {
-    term: "Profile login",
-    body: "If you use /profile, the Discord bot sends a short-lived private login link using the Roblox account linked through Bloxlink. We never receive your Roblox password, email, or payment information.",
-  },
-  {
     term: "Donation records",
     body: "In-game gem donations logged by officers and linked to Discord accounts for leaderboards.",
   },
@@ -42,7 +37,7 @@ const POLICY_BLOCKS = [
   {
     id: "how-we-use",
     title: "How we use this",
-    body: "We use this information to display clan rosters and statistics, verify membership, track donations and rewards, moderate applications and tickets, and let logged-in members customize their profile.",
+    body: "We use this information to display clan rosters and statistics, verify membership, track donations and rewards, and moderate applications and tickets.",
   },
   {
     id: "sharing",
@@ -148,16 +143,7 @@ export default function PrivacyPage() {
                 {item.term}
               </Heading>
               <p className="text-sm leading-relaxed text-ink-soft sm:text-[0.95rem]">
-                {item.term === "Profile login" ? (
-                  <>
-                    If you use <Code>/profile</Code>, the Discord bot sends a
-                    short-lived private login link using the Roblox account
-                    linked through Bloxlink. We never receive your Roblox
-                    password, email, or payment information.
-                  </>
-                ) : (
-                  item.body
-                )}
+                {item.body}
               </p>
             </li>
           ))}
@@ -263,13 +249,5 @@ export default function PrivacyPage() {
         </Link>
       </aside>
     </div>
-  );
-}
-
-function Code({ children }: { children: ReactNode }) {
-  return (
-    <code className="rounded-[0.5rem] bg-card-surface-alt px-1.5 py-0.5 font-mono text-[0.85em] font-semibold text-ink ring-1 ring-[color-mix(in_srgb,var(--pond-teal)_18%,transparent)]">
-      {children}
-    </code>
   );
 }

@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { calculatePph, deltaAtWindow, estimateRate, sampleSeriesAt } from "./stats";
+import {
+  calculatePph,
+  deltaAtWindow,
+  estimateRate,
+  preferredPacePph,
+  sampleSeriesAt,
+} from "./stats";
 
 describe("sampleSeriesAt", () => {
   test("interpolates between snapshots", () => {
@@ -27,6 +33,18 @@ describe("calculatePph", () => {
       { timestamp: 5 * 60 * 1000, value: 50 },
     ];
     expect(calculatePph(series)).toBeNull();
+  });
+});
+
+describe("preferredPacePph", () => {
+  test("prefers 30m window when available", () => {
+    const series = [
+      { timestamp: 0, value: 0 },
+      { timestamp: 30 * 60 * 1000, value: 3_000 },
+      { timestamp: 60 * 60 * 1000, value: 9_000 },
+    ];
+    // Last 30m: +6000 → 12k pph (more recent burst than hour avg 9k)
+    expect(preferredPacePph(series)).toBe(12_000);
   });
 });
 

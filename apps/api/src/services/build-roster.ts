@@ -12,11 +12,48 @@ import {
   calculatePph,
   calculateTotalInactiveMs,
   deltaAtWindow,
+  preferredPacePph,
 } from "./stats";
 
 const HOUR_MS = 60 * 60 * 1000;
 const FIVE_MIN_MS = 5 * 60 * 1000;
 const KICK_COOLDOWN_MS = 24 * HOUR_MS;
+const NEIGHBOR_SERIES_CAP = 96;
+
+/** Real clock only — never invent a horizon (fake windows make finish/cross lie). */
+function liveMsRemaining(
+  isLive: boolean,
+  endTime: Date | null | undefined,
+  now: number,
+): number | null {
+  if (!isLive || !endTime) return null;
+  const left = endTime.getTime() - now;
+  return left > 0 ? left : null;
+}
+
+function liveEndsAt(
+  isLive: boolean,
+  endTime: Date | null | undefined,
+): number | null {
+  if (!isLive || !endTime) return null;
+  const t = endTime.getTime();
+  return Number.isFinite(t) && t > 0 ? t : null;
+}
+
+/** Seconds to close gap at relative PPH, only if it happens before battle end. */
+function etaSecondsBeforeEnd(
+  gap: number | null,
+  relativePPH: number | null,
+  msRemaining: number | null,
+): number | null {
+  if (gap == null || relativePPH == null || relativePPH <= 0) return null;
+  const seconds = (gap / relativePPH) * 3600;
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  if (msRemaining != null && msRemaining > 0 && seconds * 1000 > msRemaining) {
+    return null;
+  }
+  return seconds;
+}
 
 export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
   const now = Date.now();
@@ -70,10 +107,8 @@ export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
     const ourClanEarly = await prisma.clan.findUnique({
       where: { id: ourClanName },
     });
-    const msRemainingEarly =
-      battle.endTime && battle.endTime.getTime() > now
-        ? battle.endTime.getTime() - now
-        : null;
+    const msRemainingEarly = liveMsRemaining(true, battle.endTime, now);
+    const endsAtEarly = liveEndsAt(true, battle.endTime);
 
     return {
       generatedAt: now,
@@ -87,6 +122,7 @@ export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
         pph: null,
         delta5m: null,
         msRemaining: msRemainingEarly,
+        endsAt: endsAtEarly,
         endedAt: null,
         memberCount: membershipsEarly.length,
         contributorCount: 0,
@@ -99,32 +135,35 @@ export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
       },
       comparison: { aboveClans: [], belowClans: [] },
       members: membershipsEarly
-        .map((m) => ({
-          robloxUserId: userIdToString(m.robloxUserId),
-          displayName: m.player.displayName,
-          avatarUrl: m.player.avatarUrl,
-          role:
-            m.permissionLevel >= 255
-              ? "Owner"
-              : m.permissionLevel >= 90
-                ? "Officer"
-                : "Member",
-          battlePoints: 0,
-          pph: null,
-          delta5m: null,
-          delta30m: null,
-          delta60m: null,
-          delta12h: null,
-          delta24h: null,
-          inactiveMs: null,
-          inactiveTotalMs: null,
-          streakPeakMs: null,
-          avgPlacement: null,
-          contributionPct: null,
-          totalDonatedGems: null,
-          rank: null as number | null,
-          series: [],
-        }))
+        .map((m) => {
+          const robloxUserId = userIdToString(m.robloxUserId);
+          return {
+            robloxUserId,
+            displayName: m.player.displayName,
+            avatarUrl: m.player.avatarUrl,
+            role:
+              m.permissionLevel >= 255
+                ? "Owner"
+                : m.permissionLevel >= 90
+                  ? "Officer"
+                  : "Member",
+            battlePoints: 0,
+            pph: null,
+            delta5m: null,
+            delta30m: null,
+            delta60m: null,
+            delta12h: null,
+            delta24h: null,
+            inactiveMs: null,
+            inactiveTotalMs: null,
+            streakPeakMs: null,
+            avgPlacement: null,
+            contributionPct: null,
+            totalDonatedGems: null,
+            rank: null as number | null,
+            series: [],
+          };
+        })
         .sort((a, b) => a.displayName.localeCompare(b.displayName))
         .map((member, index) => ({ ...member, rank: index + 1 })),
     };
@@ -163,12 +202,12 @@ export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
   );
 
   const ourPoints = ourSeries.length ? ourSeries[ourSeries.length - 1].value : null;
-  const ourPPH = calculatePph(ourSeries);
+  // Live pace for battle.pph so Race / roster strip matches projection inputs.
+  const ourPPH = preferredPacePph(ourSeries) ?? calculatePph(ourSeries);
+  const ourPace = ourPPH;
 
-  const msRemaining =
-    isLive && battle.endTime && battle.endTime.getTime() > now
-      ? battle.endTime.getTime() - now
-      : null;
+  const msRemaining = liveMsRemaining(isLive, battle.endTime, now);
+  const endsAt = liveEndsAt(isLive, battle.endTime);
 
   const ourClanRow = await prisma.clan.findUnique({ where: { id: ourClanName } });
   const kickCooldownEndsAt =
@@ -222,7 +261,9 @@ export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
     const snap = snapshotAtLatest.find((s) => s.clanId === clanName);
     const series = buildCleanPointsSeries(seriesByNeighbor.get(clanName) ?? []);
     const points = snap ? Number(snap.battlePoints) : null;
-    const pph = calculatePph(series);
+    // Same live pace for display PPH + ETA (matches Race series lookback better).
+    const pph = preferredPacePph(series) ?? calculatePph(series);
+    const theirPace = pph;
     const delta5m = deltaAtWindow(series, FIVE_MIN_MS);
     const gap =
       ourPoints !== null && points !== null
@@ -231,10 +272,10 @@ export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
           : Math.max(0, ourPoints - points + 1)
         : null;
     const relativePPH =
-      ourPPH !== null && pph !== null
+      ourPace !== null && theirPace !== null
         ? side === "above"
-          ? ourPPH - pph
-          : pph - ourPPH
+          ? ourPace - theirPace
+          : theirPace - ourPace
         : null;
 
     return {
@@ -245,15 +286,13 @@ export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
       delta5m,
       pointsNeeded: gap,
       relativePPH,
-      etaSeconds:
-        gap !== null && relativePPH !== null && relativePPH > 0
-          ? (gap / relativePPH) * 3600
-          : null,
+      etaSeconds: etaSecondsBeforeEnd(gap, relativePPH, msRemaining),
       iconUrl: ps99ImageUrl(iconByNeighbor.get(clanName) ?? null),
       // Poll only snapshots our clan members — neighbor active counts deferred.
       activeMembers: null,
       activeRosterSize: snap?.memberCount ?? null,
       compact,
+      series: series.slice(-NEIGHBOR_SERIES_CAP),
     };
   }
 
@@ -340,9 +379,9 @@ export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
             ? "Officer"
             : "Member",
       battlePoints,
-      pph: calculatePph(pointSeries),
+      pph: preferredPacePph(pointSeries) ?? calculatePph(pointSeries),
       delta5m: deltaAtWindow(pointSeries, FIVE_MIN_MS),
-      delta30m: deltaAtWindow(pointSeries, 30 * FIVE_MIN_MS),
+      delta30m: deltaAtWindow(pointSeries, 30 * 60 * 1000),
       delta60m: deltaAtWindow(pointSeries, HOUR_MS),
       delta12h: deltaAtWindow(pointSeries, 12 * HOUR_MS),
       delta24h: deltaAtWindow(pointSeries, 24 * HOUR_MS),
@@ -378,10 +417,11 @@ export async function buildRosterResponse(env: Env): Promise<RosterResponse> {
       pph: ourPPH,
       delta5m: deltaAtWindow(ourSeries, FIVE_MIN_MS),
       msRemaining,
+      endsAt,
       endedAt: !isLive
         ? (battle.endTime?.getTime() ?? latestCapture?.getTime() ?? null)
         : null,
-      memberCount: ourSnapshot.memberCount,
+      memberCount: memberships.length > 0 ? memberships.length : ourSnapshot.memberCount,
       contributorCount: ourSnapshot.contributorCount,
       kickCooldownEndsAt,
       gapToAbove,

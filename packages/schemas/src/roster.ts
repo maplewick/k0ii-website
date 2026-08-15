@@ -18,6 +18,8 @@ export const ClanNeighborSchema = z.object({
   activeMembers: z.number().nullable(),
   activeRosterSize: z.number().nullable(),
   compact: z.boolean().optional(),
+  /** Recent battle-point samples for projection / race pace. */
+  series: z.array(SeriesPointSchema).optional(),
 });
 
 export const RosterMemberSchema = z.object({
@@ -51,6 +53,8 @@ export const BattleSummarySchema = z.object({
   pph: z.number().nullable(),
   delta5m: z.number().nullable(),
   msRemaining: z.number().nullable(),
+  /** Absolute battle end timestamp (ms). Prefer this over msRemaining for projections. */
+  endsAt: z.number().nullable().optional(),
   endedAt: z.number().nullable().optional(),
   memberCount: z.number().nullable(),
   contributorCount: z.number().nullable(),

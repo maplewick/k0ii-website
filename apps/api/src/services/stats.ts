@@ -56,6 +56,23 @@ export function calculatePph(
   return estimateRate(latest.value, base.value, latest.timestamp - base.timestamp);
 }
 
+/**
+ * Pace for catch-up ETA: prefer ~30m (responsive), then 60m, then short burst.
+ * Display PPH can stay on the hour window; ETA should track the live race.
+ */
+export function preferredPacePph(series: SeriesPoint[]): number | null {
+  const windows = [
+    30 * 60 * 1000,
+    DEFAULT_PPH_WINDOW_MS,
+    15 * 60 * 1000,
+  ];
+  for (const windowMs of windows) {
+    const rate = calculatePph(series, windowMs);
+    if (rate != null) return rate;
+  }
+  return null;
+}
+
 export function calculateInactiveMs(
   history: PointSample[],
   stopOnGain = true,

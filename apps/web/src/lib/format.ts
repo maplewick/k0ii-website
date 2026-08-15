@@ -63,13 +63,15 @@ export function formatActiveRoster(
 
 export function formatPassEta(seconds: number | null | undefined): string {
   if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) {
-    return "Will not pass at this rate";
+    return "Will not pass before battle ends";
   }
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 24) return ">24h";
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+  const totalSec = Math.floor(seconds);
+  const d = Math.floor(totalSec / 86400);
+  const h = Math.floor((totalSec % 86400) / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  if (d > 0) return h > 0 ? `${d}d ${h}h` : `${d}d`;
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return `${Math.max(1, m)}m`;
 }
 
 /** HH:MM:SS countdown for live battle window. */

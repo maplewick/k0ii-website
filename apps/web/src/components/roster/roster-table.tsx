@@ -188,27 +188,31 @@ function MobileStat({
   );
 }
 
-function PlayerCell({ member }: { member: RosterMember }) {
-  const avatar = httpsOnlyUrl(member.avatarUrl);
+function PlayerCell({
+  member,
+}: {
+  member: RosterMember;
+}) {
+  const avatarUrl = httpsOnlyUrl(member.avatarUrl);
+  const initial = member.displayName.trim().slice(0, 1).toUpperCase() || "?";
   return (
     <div className="flex min-w-0 max-w-[220px] items-center gap-2.5">
-      {avatar ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={avatar}
-          alt=""
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="size-8 shrink-0 rounded-full object-cover ring-1 ring-[color-mix(in_srgb,var(--pond-teal)_28%,transparent)]"
-        />
-      ) : (
-        <div
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card-surface-alt font-display text-xs font-bold text-koi ring-1 ring-[color-mix(in_srgb,var(--pond-teal)_28%,transparent)]"
-          aria-hidden
-        >
-          {member.displayName.slice(0, 1).toUpperCase()}
-        </div>
-      )}
+      <span className="relative inline-flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1f2937] ring-1 ring-[color-mix(in_srgb,var(--pond-teal)_28%,transparent)]">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="size-full rounded-full object-cover"
+          />
+        ) : (
+          <span className="font-display text-xs font-bold text-koi" aria-hidden>
+            {initial}
+          </span>
+        )}
+      </span>
       <div className="min-w-0">
         <div className="truncate font-display text-sm font-semibold leading-tight text-ink">
           {member.displayName}
@@ -566,7 +570,9 @@ export function RosterTable({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row, i) => (
+            {table.getRowModel().rows.map((row, i) => {
+              const member = row.original;
+              return (
               <tr
                 key={row.id}
                 className={cn(
@@ -578,11 +584,11 @@ export function RosterTable({
                   onSelectMember &&
                     "cursor-pointer hover:bg-[color-mix(in_srgb,var(--pond-teal)_10%,transparent)] active:scale-[0.998]",
                 )}
-                onClick={() => onSelectMember?.(row.original)}
+                onClick={() => onSelectMember?.(member)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    onSelectMember?.(row.original);
+                    onSelectMember?.(member);
                   }
                 }}
                 tabIndex={onSelectMember ? 0 : undefined}
@@ -618,7 +624,8 @@ export function RosterTable({
                   );
                 })}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

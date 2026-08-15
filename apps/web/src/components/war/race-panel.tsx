@@ -2,12 +2,7 @@
 
 import type { RosterResponse } from "@k0ii/schemas";
 import { Maximize2, Minimize2 } from "lucide-react";
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { HubSkeleton } from "@/components/hub/view-switcher";
 import { Heading } from "@/components/layout/heading";
@@ -22,6 +17,7 @@ import {
   type AnalyzeResult,
   type ClanProjection,
 } from "@/lib/analytics";
+import { INTERVAL_MS } from "@/lib/analytics/projection";
 import { formatOrdinal } from "@/lib/analytics/rank-forecast";
 import {
   formatBattleCountdown,
@@ -35,6 +31,30 @@ import { httpsOnlyUrl } from "@/lib/https-url";
 import { useRoster } from "@/lib/hooks/use-api";
 import { cn } from "@/lib/utils";
 
+/** Bucket remaining time so Monte Carlo doesn't re-roll every second. */
+const PROJECTION_BUCKET_MS = 30_000;
+
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function hashSeed(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/** Time until scores cross at current pace, only if before battle end. */
 function crossoverMs(
   ours: ClanProjection,
   rival: ClanProjection,
@@ -45,8 +65,32 @@ function crossoverMs(
   if (rateDiff === 0) return null;
   const intervals = -gapNow / rateDiff;
   if (!Number.isFinite(intervals) || intervals <= 0) return null;
-  const ms = intervals * 5 * 60_000;
-  return ms <= msRemaining ? ms : null;
+  const ms = intervals * INTERVAL_MS;
+  return ms > 0 && ms <= msRemaining ? ms : null;
+}
+
+/** End-of-battle finish line vs a rival (uses projected points for remaining window). */
+function finishCrossText(
+  ours: ClanProjection,
+  rival: ClanProjection,
+  msRemaining: number,
+  gapNow: number,
+): string {
+  const cross = crossoverMs(ours, rival, msRemaining);
+  if (cross != null) {
+    const dir = gapNow > 0 ? "we pass" : "they pass";
+    return `${dir} in ${formatBattleCountdown(cross)}`;
+  }
+  const endGap = rival.projected - ours.projected;
+  if (!Number.isFinite(endGap)) return `proj ${formatPoints(rival.projected)}`;
+  if (Math.abs(endGap) < 0.5) {
+    return `tie at finish · ${formatPoints(rival.projected)}`;
+  }
+  // Positive endGap = they still lead us at battle end
+  if (endGap > 0) {
+    return `they lead at finish by ${formatPoints(endGap)}`;
+  }
+  return `we lead at finish by ${formatPoints(Math.abs(endGap))}`;
 }
 
 function Signed({
@@ -156,11 +200,16 @@ export function RacePanel({
   const battle = data?.battle;
   const live = battle?.live === true;
   const ourName = data?.clanName ?? "Us";
-  const endsAt = data
-    ? resolveBattleEndsAt(battle, data.generatedAt)
-    : null;
+  const endsAt = data ? resolveBattleEndsAt(battle, data.generatedAt) : null;
   const msRemaining =
     endsAt != null && Number.isFinite(endsAt) ? endsAt - now : null;
+  // Bucket remaining time so MC doesn't re-roll every tick — never invent extra time.
+  const projectionMs =
+    msRemaining != null && msRemaining > 0
+      ? msRemaining < PROJECTION_BUCKET_MS
+        ? msRemaining
+        : Math.floor(msRemaining / PROJECTION_BUCKET_MS) * PROJECTION_BUCKET_MS
+      : null;
 
   const clans = useMemo(() => (data ? collectClans(data) : []), [data]);
 
@@ -190,14 +239,19 @@ export function RacePanel({
   }, [data, battle?.delta5m, ourName]);
 
   const analysis: AnalyzeResult | null = useMemo(() => {
-    if (!live || msRemaining == null || msRemaining <= 0) return null;
+    if (!live || projectionMs == null || projectionMs <= 0) return null;
     if (clans.length < 2 || !ourName) return null;
     try {
-      return analyze(clans, ourName, msRemaining);
+      const seed = hashSeed(
+        `${battle?.id ?? "battle"}:${ourName}:${Math.round(projectionMs / PROJECTION_BUCKET_MS)}`,
+      );
+      return analyze(clans, ourName, projectionMs, {
+        random: mulberry32(seed),
+      });
     } catch {
       return null;
     }
-  }, [live, msRemaining, clans, ourName]);
+  }, [live, projectionMs, clans, ourName, battle?.id]);
 
   const our5m =
     battle?.delta5m ?? last5mChange(normalizeSeries(battle?.series));
@@ -245,7 +299,11 @@ export function RacePanel({
         <p className="max-w-md text-sm text-ink-soft">
           Could not load roster data. Check the API, then try again.
         </p>
-        <Button size="sm" className="active:scale-[0.97]" onClick={() => void refetch()}>
+        <Button
+          size="sm"
+          className="active:scale-[0.97]"
+          onClick={() => void refetch()}
+        >
           Try again
         </Button>
       </div>
@@ -254,10 +312,7 @@ export function RacePanel({
 
   return (
     <div
-      className={cn(
-        "pond-stack animate-fade-rise",
-        fullscreen && "min-h-dvh",
-      )}
+      className={cn("pond-stack animate-fade-rise", fullscreen && "min-h-dvh")}
     >
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 pond-section-head">
@@ -301,9 +356,7 @@ export function RacePanel({
                 "mt-1 min-w-[9ch] font-display text-4xl font-bold tabular-nums tracking-tight text-ink sm:text-5xl",
               )}
             >
-              {endsAt != null
-                ? formatBattleCountdown(msRemaining)
-                : "n/a"}
+              {endsAt != null ? formatBattleCountdown(msRemaining) : "n/a"}
             </p>
           </div>
           <Button
@@ -348,9 +401,9 @@ export function RacePanel({
               value={analysis ? formatOrdinal(analysis.projectedRank) : "n/a"}
               hint={
                 analysis
-                  ? `${formatPoints(analysis.ours.projected)} at pace`
-                  : endsAt == null
-                    ? "No end time - projection off"
+                  ? `${formatPoints(analysis.ours.projected)} at battle end`
+                  : endsAt == null || (msRemaining != null && msRemaining <= 0)
+                    ? "Need battle end time"
                     : "Projection unavailable"
               }
               tone={
@@ -367,7 +420,9 @@ export function RacePanel({
           <section className="pond-card grid grid-cols-2 divide-x divide-y divide-[color-mix(in_srgb,var(--pond-teal)_16%,transparent)] overflow-hidden sm:grid-cols-4 sm:divide-y-0">
             <StripStat
               label="Pace"
-              value={formatPph(battle?.pph)}
+              value={formatPph(
+                analysis?.ours.perHour ?? battle?.pph ?? null,
+              )}
               hint={<Signed value={our5m} />}
               hintLabel="5m"
             />
@@ -385,13 +440,13 @@ export function RacePanel({
               }
             />
             <StripStat
-              label="Window"
+              label="Time left"
               value={
                 msRemaining != null && msRemaining > 0
                   ? formatDuration(msRemaining)
                   : "n/a"
               }
-              hint={endsAt != null ? "until finish" : "end unknown"}
+              hint={endsAt != null ? "battle end clock" : "end unknown"}
             />
           </section>
 
@@ -402,7 +457,7 @@ export function RacePanel({
                   Rivals
                 </Heading>
                 <p className="mt-0.5 text-xs text-ink-soft">
-                  Gap vs us, 5m pace, projected crossover
+                  Gap vs us, 5m pace, pass before end or finish gap
                 </p>
               </div>
               <Badge variant="info">{ladder.length} clans</Badge>
@@ -424,30 +479,23 @@ export function RacePanel({
                 </thead>
                 <tbody>
                   {ladder.map((c, i) => {
-                    const isUs =
-                      c.name.toLowerCase() === ourName.toLowerCase();
+                    const isUs = c.name.toLowerCase() === ourName.toLowerCase();
                     const proj = analysis?.projections.find(
-                      (x) =>
-                        x.name.toLowerCase() === c.name.toLowerCase(),
+                      (x) => x.name.toLowerCase() === c.name.toLowerCase(),
                     );
                     const their5m =
                       delta5mByName.get(c.name.toLowerCase()) ?? null;
                     const vs =
-                      our5m != null && their5m != null
-                        ? our5m - their5m
+                      our5m != null && their5m != null ? our5m - their5m : null;
+                    const cross =
+                      !isUs && analysis && proj
+                        ? finishCrossText(
+                            analysis.ours,
+                            proj,
+                            analysis.msRemaining,
+                            c.gap,
+                          )
                         : null;
-                    let cross: string | null = null;
-                    if (!isUs && analysis && proj) {
-                      const ms = crossoverMs(
-                        analysis.ours,
-                        proj,
-                        analysis.msRemaining,
-                      );
-                      if (ms != null) {
-                        const dir = c.gap > 0 ? "we pass" : "they pass";
-                        cross = `${dir} in ${formatBattleCountdown(ms)}`;
-                      }
-                    }
                     return (
                       <tr
                         key={c.name}
@@ -488,11 +536,8 @@ export function RacePanel({
                         </td>
                         <td className="px-4 py-2.5 text-ink-soft sm:px-5">
                           {isUs && analysis
-                            ? `proj ${formatOrdinal(analysis.projectedRank)} · ${formatPoints(analysis.ours.projected)}`
-                            : (cross ??
-                              (proj
-                                ? `proj ${formatPoints(proj.projected)}`
-                                : "-"))}
+                            ? `finish ${formatOrdinal(analysis.projectedRank)} · ${formatPoints(analysis.ours.projected)}`
+                            : (cross ?? "-")}
                         </td>
                       </tr>
                     );
@@ -518,22 +563,18 @@ export function RacePanel({
                 const proj = analysis?.projections.find(
                   (x) => x.name.toLowerCase() === c.name.toLowerCase(),
                 );
-                const their5m =
-                  delta5mByName.get(c.name.toLowerCase()) ?? null;
+                const their5m = delta5mByName.get(c.name.toLowerCase()) ?? null;
                 const vs =
                   our5m != null && their5m != null ? our5m - their5m : null;
-                let cross: string | null = null;
-                if (!isUs && analysis && proj) {
-                  const ms = crossoverMs(
-                    analysis.ours,
-                    proj,
-                    analysis.msRemaining,
-                  );
-                  if (ms != null) {
-                    const dir = c.gap > 0 ? "we pass" : "they pass";
-                    cross = `${dir} in ${formatBattleCountdown(ms)}`;
-                  }
-                }
+                const cross =
+                  !isUs && analysis && proj
+                    ? finishCrossText(
+                        analysis.ours,
+                        proj,
+                        analysis.msRemaining,
+                        c.gap,
+                      )
+                    : null;
                 return (
                   <li
                     key={c.name}
@@ -546,9 +587,7 @@ export function RacePanel({
                     <div className="flex items-center justify-between gap-2">
                       <ClanMark
                         name={c.name}
-                        iconUrl={
-                          iconByName.get(c.name.toLowerCase()) ?? null
-                        }
+                        iconUrl={iconByName.get(c.name.toLowerCase()) ?? null}
                         ours={isUs}
                       />
                       <span className="shrink-0 font-tabular text-sm text-ink-soft">
@@ -575,11 +614,8 @@ export function RacePanel({
                     </div>
                     <p className="text-xs text-ink-soft">
                       {isUs && analysis
-                        ? `proj ${formatOrdinal(analysis.projectedRank)} · ${formatPoints(analysis.ours.projected)}`
-                        : (cross ??
-                          (proj
-                            ? `proj ${formatPoints(proj.projected)}`
-                            : "No projection yet"))}
+                        ? `finish ${formatOrdinal(analysis.projectedRank)} · ${formatPoints(analysis.ours.projected)}`
+                        : (cross ?? "Need battle end time")}
                     </p>
                     {!isUs && Number.isFinite(c.points) ? (
                       <div

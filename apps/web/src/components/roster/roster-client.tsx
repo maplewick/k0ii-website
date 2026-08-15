@@ -2,16 +2,8 @@
 
 import type { RosterResponse } from "@k0ii/schemas";
 import { parseAsString, useQueryState } from "nuqs";
-import { RefreshCw, Search, Settings2 } from "lucide-react";
-import {
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
+import { RefreshCw, Search } from "lucide-react";
+import { useEffect, useMemo } from "react";
 
 import { Heading } from "@/components/layout/heading";
 import { PanelErrorBoundary } from "@/components/layout/panel-error-boundary";
@@ -44,8 +36,6 @@ import { formatNumber, formatRelativeTime } from "@/lib/format";
 import { useRoster } from "@/lib/hooks/use-api";
 import { cn } from "@/lib/utils";
 
-const GIF_PREF_KEY = "k0ii-show-profile-gifs";
-
 export function RosterClient({
   data: initialData,
   embedded = false,
@@ -72,82 +62,6 @@ export function RosterClient({
     "search",
     parseAsString.withDefault(""),
   );
-  const [showGifs, setShowGifs] = useState(true);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsPos, setSettingsPos] = useState<{
-    top: number;
-    right: number;
-  } | null>(null);
-  const settingsBtnRef = useRef<HTMLButtonElement>(null);
-  const settingsPanelRef = useRef<HTMLDivElement>(null);
-  const settingsMenuId = useId();
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(GIF_PREF_KEY);
-      if (raw != null) setShowGifs(raw === "1");
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!settingsOpen) {
-      setSettingsPos(null);
-      return;
-    }
-    function place() {
-      const btn = settingsBtnRef.current;
-      if (!btn) return;
-      const r = btn.getBoundingClientRect();
-      setSettingsPos({
-        top: Math.round(r.bottom + 8),
-        right: Math.round(window.innerWidth - r.right),
-      });
-    }
-    place();
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
-    return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  }, [settingsOpen]);
-
-  useEffect(() => {
-    if (!settingsOpen) return;
-    function onPointerDown(e: PointerEvent) {
-      const t = e.target as Node;
-      if (
-        settingsBtnRef.current?.contains(t) ||
-        settingsPanelRef.current?.contains(t)
-      ) {
-        return;
-      }
-      setSettingsOpen(false);
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setSettingsOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [settingsOpen]);
-
-  function toggleGifs() {
-    setShowGifs((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(GIF_PREF_KEY, next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }
 
   const sortKey = normalizeRosterSortKey(sort);
   const sortOrder: RosterSortOrder = order === "asc" ? "asc" : "desc";
@@ -156,7 +70,8 @@ export function RosterClient({
   const live = Boolean(battle?.live);
   const hasBattle = hasBattleSnapshot(battle);
   const endedCaption = battleEndedCaption(battle);
-  const memberCount = battle?.memberCount ?? data.members.length;
+  const members = data.members;
+  const memberCount = battle?.memberCount ?? members.length;
   const generatedAt = dataUpdatedAt || data.generatedAt;
 
   function handleSort(key: RosterSortKey) {
@@ -165,33 +80,39 @@ export function RosterClient({
       return;
     }
     void setSort(key);
-    void setOrder(key === "displayName" || key === "rank" || key === "avgPlacement" ? "asc" : "desc");
+    void setOrder(
+      key === "displayName" || key === "rank" || key === "avgPlacement"
+        ? "asc"
+        : "desc",
+    );
   }
 
   function handleSortSelect(key: RosterSortKey) {
     void setSort(key);
-    void setOrder(key === "displayName" || key === "rank" || key === "avgPlacement" ? "asc" : "desc");
+    void setOrder(
+      key === "displayName" || key === "rank" || key === "avgPlacement"
+        ? "asc"
+        : "desc",
+    );
   }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let list = data.members;
-    if (q) {
-      list = list.filter((m) => {
-        const hay = [m.displayName, m.role].filter(Boolean).join(" ").toLowerCase();
-        return hay.includes(q);
-      });
-    }
+    const list = q
+      ? members.filter((m) => m.displayName.toLowerCase().includes(q))
+      : members;
     return sortMembers(list, sortKey, sortOrder);
-  }, [data.members, search, sortKey, sortOrder]);
+  }, [members, search, sortKey, sortOrder]);
 
-  const activeMember = useMemo(
-    () =>
-      data.members.find(
-        (m) => m.displayName.toLowerCase() === player?.toLowerCase(),
-      ) ?? null,
-    [data.members, player],
-  );
+  const activeMember = useMemo(() => {
+    if (!player) return null;
+    const needle = player.toLowerCase();
+    return (
+      members.find((m) => m.displayName.toLowerCase() === needle) ??
+      members.find((m) => m.displayName.toLowerCase().includes(needle)) ??
+      null
+    );
+  }, [members, player]);
 
   useEffect(() => {
     if (player && !activeMember) void setPlayer(null);
@@ -206,12 +127,7 @@ export function RosterClient({
   }
 
   return (
-    <div
-      className={cn(
-        embedded ? "pond-stack" : "pond-page",
-        !showGifs && "[&_img[src$='.gif']]:hidden",
-      )}
-    >
+    <div className={embedded ? "pond-stack" : "pond-page"}>
       <article
         className={cn(
           "pond-card relative p-5 sm:p-6",
@@ -304,83 +220,25 @@ export function RosterClient({
                 )}
               </div>
             ) : null}
-            <div className="flex gap-2">
-              <Button
-                ref={settingsBtnRef}
-                variant="secondary"
-                size="sm"
-                aria-label="Display settings"
-                aria-expanded={settingsOpen}
-                aria-controls={settingsMenuId}
-                aria-haspopup="dialog"
-                onClick={() => setSettingsOpen((v) => !v)}
-              >
-                <Settings2 className="size-4" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="flex-1 sm:flex-none"
-                onClick={() => void refetch()}
-                disabled={isRefetching}
-              >
-                <RefreshCw className={isRefetching ? "animate-spin" : undefined} />
-                Reload
-              </Button>
-            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="self-start sm:self-end"
+              onClick={() => void refetch()}
+              disabled={isRefetching}
+            >
+              <RefreshCw className={isRefetching ? "animate-spin" : undefined} />
+              Reload
+            </Button>
           </div>
         </div>
       </article>
-
-      {settingsOpen && settingsPos
-        ? createPortal(
-            <div
-              ref={settingsPanelRef}
-              id={settingsMenuId}
-              role="dialog"
-              aria-label="Display settings"
-              style={{ top: settingsPos.top, right: settingsPos.right }}
-              className={cn(
-                "fixed z-[80] w-[min(16.5rem,calc(100vw-2rem))]",
-                "origin-top-right rounded-[var(--radius-card)] p-3",
-                "bg-[var(--card-surface)]",
-                "shadow-[0_14px_40px_color-mix(in_srgb,var(--ink)_28%,transparent)]",
-                "ring-1 ring-[color-mix(in_srgb,var(--pond-teal)_28%,transparent)]",
-                "animate-fade-rise",
-              )}
-            >
-              <p className="font-display text-sm font-semibold text-ink">
-                Display
-              </p>
-              <p className="mt-0.5 text-xs text-ink-soft">
-                Local to this browser only.
-              </p>
-              <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-[var(--radius-input)] bg-[var(--card-surface-alt)] px-3 py-2.5 transition-colors duration-150 ease-[var(--ease-out)] hover:bg-[color-mix(in_srgb,var(--pond-teal)_10%,var(--card-surface-alt))]">
-                <input
-                  type="checkbox"
-                  checked={showGifs}
-                  onChange={toggleGifs}
-                  className="mt-0.5 size-4 shrink-0 accent-[var(--koi-orange)]"
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-ink">
-                    Profile GIFs
-                  </span>
-                  <span className="mt-0.5 block text-xs text-ink-soft">
-                    Hide animated avatars to save motion and bandwidth.
-                  </span>
-                </span>
-              </label>
-            </div>,
-            document.body,
-          )
-        : null}
 
       {hasBattle ? (
         <PanelErrorBoundary title="Battle stats failed">
           <BattleStatStrip
             battle={battle}
-            members={data.members}
+            members={members}
             onOpenMember={openMember}
             onOpenRank={dialogs.openRank}
             onOpenForecast={dialogs.openForecast}
@@ -466,10 +324,10 @@ export function RosterClient({
           ) : (
             <div className="pond-card px-6 py-12 text-center">
               <p className="font-display text-base font-semibold text-ink">
-                {data.members.length === 0 ? "Waiting on poll" : "No matches"}
+                {members.length === 0 ? "Waiting on poll" : "No matches"}
               </p>
               <p className="mt-1 text-sm text-ink-soft">
-                {data.members.length === 0
+                {members.length === 0
                   ? "First poll tick will fill this board."
                   : "Clear search or try another name."}
               </p>
@@ -480,7 +338,7 @@ export function RosterClient({
 
       <MemberDialog
         member={activeMember}
-        members={data.members}
+        members={members}
         clanTotalPoints={battle?.points}
         open={Boolean(activeMember)}
         onOpenChange={closeMember}

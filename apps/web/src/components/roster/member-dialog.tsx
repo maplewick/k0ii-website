@@ -4,7 +4,6 @@ import type { RosterMember } from "@k0ii/schemas";
 import { ExternalLink, TrendingDown, TrendingUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,7 +23,6 @@ import {
   dialogContentClass,
 } from "@/components/roster/dialog-bits";
 import { MemberSeriesChart } from "@/components/roster/member-series-chart";
-import { httpsOnlyUrl } from "@/lib/https-url";
 import {
   clanAveragePph,
   contributionPct,
@@ -39,6 +37,7 @@ import {
   formatPph,
   formatSignedDelta,
 } from "@/lib/format";
+import { httpsOnlyUrl } from "@/lib/https-url";
 import { cn } from "@/lib/utils";
 
 type ChartMode = "points" | "pph";
@@ -89,36 +88,38 @@ export function MemberDialog({
   const ppd =
     member.pph != null && Number.isFinite(member.pph) ? member.pph * 24 : null;
   const profileUrl = `https://www.roblox.com/users/${encodeURIComponent(member.robloxUserId)}/profile`;
-  const avatarSrc = httpsOnlyUrl(member.avatarUrl);
+  const avatarUrl = httpsOnlyUrl(member.avatarUrl);
+  const initial = member.displayName.trim().slice(0, 1).toUpperCase() || "?";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(dialogContentClass, "sm:max-w-5xl")}>
         <DialogHeader className="gap-3 pr-10">
-          <div className="flex items-start gap-4">
-            {avatarSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarSrc}
-                alt=""
-                className="size-16 shrink-0 rounded-full object-cover ring-2 ring-[color-mix(in_srgb,var(--koi-orange)_45%,transparent)] shadow-[var(--shadow-button)]"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-card-surface-alt font-display text-2xl font-bold text-koi ring-2 ring-[color-mix(in_srgb,var(--koi-orange)_45%,transparent)]">
-                {member.displayName.slice(0, 1).toUpperCase()}
-              </div>
-            )}
-            <div className="min-w-0 flex-1 space-y-2">
-              <DialogTitle className="truncate text-2xl sm:text-3xl">
+          <div className="flex items-center gap-3">
+            <span className="relative inline-flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1f2937] ring-2 ring-[color-mix(in_srgb,var(--koi-orange)_45%,transparent)] shadow-[var(--shadow-button)]">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  className="size-full rounded-full object-cover"
+                />
+              ) : (
+                <span className="font-display text-2xl font-bold text-koi" aria-hidden>
+                  {initial}
+                </span>
+              )}
+            </span>
+            <div className="min-w-0">
+              <DialogTitle className="truncate font-display text-2xl font-bold text-ink">
                 {member.displayName}
               </DialogTitle>
-              <DialogDescription className="flex flex-wrap items-center gap-1.5">
-                {member.role ? <Badge variant="secondary">{member.role}</Badge> : null}
-                {member.rank != null ? (
-                  <Badge variant="info">Roster rank #{member.rank}</Badge>
-                ) : null}
-                <Pip title="Roblox user id">{member.robloxUserId}</Pip>
+              <DialogDescription className="text-sm text-ink-soft">
+                {member.role
+                  ? `${member.role} · roster stats`
+                  : "Roster stats for this battle"}
               </DialogDescription>
             </div>
           </div>
@@ -150,7 +151,10 @@ export function MemberDialog({
           <MetricTile label="30m" value={formatSignedDelta(member.delta30m)} />
           <MetricTile label="60m" value={formatSignedDelta(member.delta60m)} />
           <MetricTile label="12h" value={formatSignedDelta(member.delta12h)} />
-          <MetricTile label="Inactive" value={formatDuration(member.inactiveMs)} />
+          <MetricTile
+            label="Total inactive"
+            value={formatDuration(member.inactiveTotalMs)}
+          />
           <MetricTile
             label="Vs clan PPH"
             value={
@@ -191,7 +195,10 @@ export function MemberDialog({
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              {member.pph != null && neighbors?.above?.pph != null && gapAbove != null && gapAbove > 0 ? (
+              {member.pph != null &&
+              neighbors?.above?.pph != null &&
+              gapAbove != null &&
+              gapAbove > 0 ? (
                 <Pip>
                   {member.pph > neighbors.above.pph ? (
                     <TrendingUp className="size-3 text-lily" aria-hidden />
@@ -199,13 +206,17 @@ export function MemberDialog({
                     <TrendingDown className="size-3 text-alert" aria-hidden />
                   )}
                   Catching #{neighbors.above.rank}:{" "}
-                  {member.pph > neighbors.above.pph ? "yes at pace" : "not at pace"}
+                  {member.pph > neighbors.above.pph
+                    ? "yes at pace"
+                    : "not at pace"}
                 </Pip>
               ) : null}
               {member.pph != null && neighbors?.below?.pph != null ? (
                 <Pip>
                   Holding #{neighbors.below.rank}:{" "}
-                  {member.pph >= neighbors.below.pph ? "safe pace" : "under pressure"}
+                  {member.pph >= neighbors.below.pph
+                    ? "safe pace"
+                    : "under pressure"}
                 </Pip>
               ) : null}
             </div>
@@ -238,7 +249,7 @@ export function MemberDialog({
           )}
         </DialogSection>
 
-        <DialogFooter>
+        <DialogFooter className="sm:justify-end">
           <a
             href={profileUrl}
             target="_blank"

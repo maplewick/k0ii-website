@@ -161,14 +161,19 @@ export function EmptyPanel({ children }: { children: ReactNode }) {
 export function Pip({
   children,
   title,
+  className,
 }: {
   children: ReactNode;
   title?: string;
+  className?: string;
 }) {
   return (
     <span
       title={title}
-      className="inline-flex items-center gap-1 rounded-full bg-card-surface-alt px-2.5 py-1 text-xs font-medium text-ink ring-1 ring-[color-mix(in_srgb,var(--pond-teal)_16%,transparent)]"
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full bg-card-surface-alt px-2.5 py-1 text-xs font-medium text-ink ring-1 ring-[color-mix(in_srgb,var(--pond-teal)_16%,transparent)]",
+        className,
+      )}
     >
       {children}
     </span>

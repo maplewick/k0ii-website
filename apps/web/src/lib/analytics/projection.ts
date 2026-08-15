@@ -1,15 +1,21 @@
 /**
- * Battle projection & win-probability model (ported from upstream
- * website/lib/projection.js). Capacity × uptime with Monte Carlo truncated
- * at physical ceiling (~168 pph per member).
+ * Battle projection & win-probability model.
+ * Projects observed pace (series / PPH) over remaining battle time.
+ * Optional legacy uptime×cap path is opt-in only — modern PS99 rates
+ * blow past any fixed per-member ceiling.
  */
 
 export const INTERVAL_MS = 5 * 60 * 1000;
-export const LOOKBACK_MS = 6 * 60 * 60 * 1000;
+/** Prefer recent pace so catch-up / finish odds track the live war. */
+export const LOOKBACK_MS = 2 * 60 * 60 * 1000;
+/** Widen when the short window lacks samples (early battle / sparse polls). */
+export const LOOKBACK_FALLBACK_MS = 6 * 60 * 60 * 1000;
 export const MIN_SAMPLES = 3;
 export const TRIALS = 4000;
-export const PER_MEMBER_CAP_PPH = 168;
-export const UPTIME_OVERSHOOT = 1.05;
+/** Legacy soft ceiling — only used when opts.useUptime === true. */
+export const PER_MEMBER_CAP_PPH = 220;
+export const UPTIME_OVERSHOOT = 1.08;
+export const UPTIME_MEAN_MAX = 1.12;
 
 export type SeriesPoint = { timestamp: number; value: number };
 
@@ -63,6 +69,10 @@ export type AnalyzeResult = {
 export type ProjectOpts = {
   lookbackMs?: number;
   perMemberCap?: number;
+  /**
+   * Legacy capacity×uptime clamp. Default false — PS99 clan PPH is far
+   * above any fixed per-member cap, so enabling this under-projects badly.
+   */
   useUptime?: boolean;
   trials?: number;
   /** Inject RNG for tests — default Math.random */
@@ -108,13 +118,43 @@ export function recentDeltas(
     const dt = t - Number(series[i - 1]!.timestamp);
     if (dt <= 0) continue;
     const dv = Number(series[i]!.value) - Number(series[i - 1]!.value);
+    // Ignore tiny negative noise from cleans; keep zeros (idle intervals).
+    if (dv < 0) continue;
     deltas.push((dv / dt) * INTERVAL_MS);
   }
   return deltas;
 }
 
+/** Prefer short lookback; fall back to wider window when samples are thin. */
+export function paceDeltas(
+  series: SeriesPoint[] | null | undefined,
+  preferMs = LOOKBACK_MS,
+  fallbackMs = LOOKBACK_FALLBACK_MS,
+): number[] {
+  const short = recentDeltas(series, preferMs);
+  if (short.length >= MIN_SAMPLES) return short;
+  return recentDeltas(series, fallbackMs);
+}
+
+/** Recency-weighted mean — last intervals count more than early lookback. */
+function weightedMean(xs: number[]): number {
+  if (!xs.length) return 0;
+  let wSum = 0;
+  let xSum = 0;
+  for (let i = 0; i < xs.length; i++) {
+    const w = i + 1;
+    wSum += w;
+    xSum += w * xs[i]!;
+  }
+  return xSum / wSum;
+}
+
 function capRatePer5m(memberCount: number, cap: number): number {
   return (memberCount * cap) / 12;
+}
+
+function pphToPerInterval(pph: number): number {
+  return (pph / 60) * 5;
 }
 
 export function projectClan(
@@ -127,57 +167,78 @@ export function projectClan(
   const current = Number(clan.points) || 0;
   const intervalsLeft = Math.max(0, msRemaining / INTERVAL_MS);
   const memberCount = Number(clan.memberCount);
+  // Opt-in only — default projects raw observed pace over remaining time.
   const useUptime =
-    opts.useUptime !== false &&
+    opts.useUptime === true &&
     Number.isFinite(memberCount) &&
     memberCount > 0 &&
     cap > 0;
 
-  const deltas = recentDeltas(clan.series, lookbackMs);
+  const deltas = paceDeltas(
+    clan.series,
+    lookbackMs,
+    opts.lookbackMs != null ? lookbackMs : LOOKBACK_FALLBACK_MS,
+  );
   const capRate5m = useUptime ? capRatePer5m(memberCount, cap) : null;
 
-  let meanUnit: number;
-  let sdUnit: number;
+  let perInterval: number;
+  let perIntervalSd: number;
   let sampleCount: number;
+  let uptime: number | null = null;
 
   if (deltas.length >= MIN_SAMPLES) {
-    const values = useUptime
-      ? deltas.map((d) => clamp(d / (capRate5m as number), 0, 1.5))
-      : deltas.slice();
-    meanUnit = mean(values);
-    sdUnit = stdDev(values);
-    sampleCount = values.length;
-    if (useUptime) meanUnit = clamp(meanUnit, 0, 1.0);
-  } else if (Number.isFinite(Number(clan.pph))) {
-    const perInterval5m = (Number(clan.pph) / 60) * 5;
-    if (useUptime) {
-      meanUnit = clamp(perInterval5m / (capRate5m as number), 0, 1.0);
-      sdUnit = Math.min(0.1, meanUnit * 0.15);
+    if (useUptime && capRate5m) {
+      const values = deltas.map((d) => clamp(d / capRate5m, 0, 1.5));
+      uptime = clamp(weightedMean(values), 0, UPTIME_MEAN_MAX);
+      const sdUnit = stdDev(values);
+      sampleCount = values.length;
+      perInterval = uptime * capRate5m;
+      perIntervalSd = sdUnit * capRate5m;
     } else {
-      meanUnit = perInterval5m;
-      sdUnit = perInterval5m * 0.15;
+      perInterval = weightedMean(deltas);
+      perIntervalSd = stdDev(deltas);
+      sampleCount = deltas.length;
+      // If series is thin but API PPH is much higher, trust the higher signal.
+      const pph = Number(clan.pph);
+      if (Number.isFinite(pph) && pph > 0) {
+        const fromPph = pphToPerInterval(pph);
+        if (fromPph > perInterval * 1.25) {
+          perInterval = fromPph;
+          perIntervalSd = Math.max(perIntervalSd, fromPph * 0.15);
+          sampleCount = Math.max(sampleCount, 3);
+        }
+      }
+    }
+  } else if (Number.isFinite(Number(clan.pph))) {
+    const fromPph = pphToPerInterval(Number(clan.pph));
+    if (useUptime && capRate5m) {
+      uptime = clamp(fromPph / capRate5m, 0, UPTIME_MEAN_MAX);
+      perInterval = uptime * capRate5m;
+      perIntervalSd = Math.min(0.12, Math.max(0.04, uptime * 0.2)) * capRate5m;
+    } else {
+      perInterval = fromPph;
+      perIntervalSd = Math.max(fromPph * 0.15, 1);
     }
     sampleCount = 1;
   } else {
     return null;
   }
 
-  const rateStdErr = sdUnit / Math.sqrt(sampleCount);
-  const scale = useUptime ? (capRate5m as number) : 1;
-  const perInterval = meanUnit * scale;
-  const perIntervalSd = sdUnit * scale;
-  const rateStdErrScaled = rateStdErr * scale;
+  // Never project negative pace.
+  perInterval = Math.max(0, perInterval);
+  perIntervalSd = Math.max(0, perIntervalSd);
 
+  const rateStdErr = perIntervalSd / Math.sqrt(Math.max(1, sampleCount));
   const noiseVar = perIntervalSd * perIntervalSd * intervalsLeft;
   const rateVar =
-    rateStdErrScaled * intervalsLeft * (rateStdErrScaled * intervalsLeft);
+    rateStdErr * intervalsLeft * (rateStdErr * intervalsLeft);
 
   const gain = perInterval * intervalsLeft;
   const projected = current + gain;
   const minSigma = Math.abs(gain) * 0.04;
   const sigma = Math.max(Math.sqrt(noiseVar + rateVar), minSigma);
-  const maxGain = useUptime
-    ? (capRate5m as number) * UPTIME_OVERSHOOT * intervalsLeft
+  const maxGain = useUptime && capRate5m
+    ? capRate5m * UPTIME_OVERSHOOT * intervalsLeft
     : Infinity;
 
   return {
@@ -191,8 +252,8 @@ export function projectClan(
     high: Math.min(current + maxGain, projected + 1.96 * sigma),
     intervalsLeft,
     maxGain,
-    uptime: useUptime ? meanUnit : null,
-    capRatePerHour: useUptime ? (capRate5m as number) * 12 : null,
+    uptime,
+    capRatePerHour: useUptime && capRate5m ? capRate5m * 12 : null,
     memberCount: Number.isFinite(memberCount) ? memberCount : null,
   };
 }
@@ -326,9 +387,7 @@ export function last5mChange(
 }
 
 /** Normalize site series points that may use t/points or timestamp/value. */
-export function normalizeSeries(
-  series: unknown,
-): SeriesPoint[] {
+export function normalizeSeries(series: unknown): SeriesPoint[] {
   if (!Array.isArray(series)) return [];
   const out: SeriesPoint[] = [];
   for (const raw of series) {

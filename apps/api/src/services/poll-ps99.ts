@@ -216,10 +216,19 @@ function selectLadderClans(
   return topClans.slice(start, end);
 }
 
+/** PS99 battle/clan `members` omits the Owner — bump to real roster size. */
+export function ps99RosterSize(listedMembers: number | null | undefined): number | null {
+  if (listedMembers == null || !Number.isFinite(Number(listedMembers))) return null;
+  const n = Number(listedMembers);
+  if (n < 0) return null;
+  return n + 1;
+}
+
 /** When PS99 ladder is empty / missing us, still snapshot from legacy clan payload. */
 function clanRowFromLegacy(clan: LegacyClan, battleId: string): V1BattleClan {
   const battle = clan.Battles?.[battleId];
   const points = Number(battle?.Points) || 0;
+  // Keep raw Members.length (excludes Owner) — same shape as battle ladder `members`.
   const members = clan.Members?.length ?? 0;
   const contributors = battle?.PointContributions?.filter((c) => (Number(c.Points) || 0) > 0)
     .length ?? 0;
@@ -229,7 +238,7 @@ function clanRowFromLegacy(clan: LegacyClan, battleId: string): V1BattleClan {
     icon: clan.Icon ?? "",
     countryCode: clan.CountryCode ?? "",
     members,
-    memberCapacity: clan.MemberCapacity ?? members,
+    memberCapacity: clan.MemberCapacity ?? ps99RosterSize(members) ?? members,
     points,
     reportedPlace: battle?.Place ?? null,
     medal: null,
@@ -542,7 +551,11 @@ export async function pollPs99(env: Env): Promise<PollResult> {
     capturedAt,
     battlePoints: BigInt(row.points),
     rank: row.rank,
-    memberCount: row.members ?? null,
+    // Our live roster already includes Owner; other clans: ladder omits Owner → +1.
+    memberCount:
+      row.name === clanId && userIds.length > 0
+        ? userIds.length
+        : ps99RosterSize(row.members),
     contributorCount: row.contributorCount ?? null,
   }));
 

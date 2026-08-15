@@ -1,137 +1,100 @@
-# KOii Website (v2)
+# K0ii Website
 
-Rebuild of the K0ii clan war dashboard. Turborepo monorepo (`apps/web`, `apps/api`, `packages/schemas`).
+Clan war dashboard for **K0ii** (tracked clan: `K0i2`). Live roster, battle history, leaderboards, rewards, leagues, and community pages — fed by a Hono API that polls the [PS99 Public API](https://github.com/BIG-Games-LLC/ps99-public-api-docs).
 
-**Stack:** Bun, Turborepo, Next.js 16 (`apps/web`), Hono + Prisma (`apps/api`), shared Zod schemas (`packages/schemas`).
+**Stack:** Bun · Turborepo · Next.js 16 (`apps/web`) · Hono + Prisma (`apps/api`) · shared Zod (`packages/schemas`)
 
-**Data:** Backend polls [PS99 Public API](https://github.com/BIG-Games-LLC/ps99-public-api-docs) on an interval, stores snapshots in Prisma Postgres (Accelerate optional), serves `GET /api/roster` to the frontend. Frontend never calls PS99 directly.
-
-**Design:** Follow [`designGuide.md`](./designGuide.md).
-
-**v1 scope:** Roster dashboard only — stat strip, 3 above / 3 below neighbor comparison, sortable member table.
+**Design:** [`designGuide.md`](./designGuide.md) — cartoon koi pond UI.
 
 ## Layout
 
 ```
 k0ii-website/
 ├── apps/web/          Next.js frontend (:3001)
-├── apps/api/          Hono API + poll job (:3002)
-├── packages/schemas/  Shared Zod types
-└── designGuide.md
+├── apps/api/          Hono API + PS99 poll job (:3002)
+├── packages/schemas/  Shared Zod response types
+├── designGuide.md
+└── .env.example
 ```
-
-Old `bot.js` / `web/` at repo root are reference only. Do not import from them.
 
 ## Prerequisites
 
 - [Bun](https://bun.sh) 1.2+
-- Prisma Postgres database (local Postgres or [Prisma Postgres](https://www.prisma.io/docs/postgres) + Accelerate)
+- PostgreSQL (local, Prisma Postgres, or Accelerate)
 
 ## Setup
 
 ```bash
-# From k0ii-website root — env lives in k0ii-website/.env (not apps/api/)
-cp .env.example .env
+cp .env.example .env   # edit DATABASE_URL / DIRECT_DATABASE_URL
 bun install
 bun run db:generate
-bun run db:push   # or: bun run db:migrate
+bun run db:push        # or: bun run db:migrate
 ```
 
-## Run locally
+Env lives at the **repo root** (`.env`), not inside `apps/api/`.
 
-Three terminals (or use turbo for web + api only):
+## Run locally
 
 ```bash
 # Terminal 1 — API
 cd apps/api && bun run dev
 
-# Terminal 2 — PS99 poll job (60s default)
+# Terminal 2 — PS99 poll (required for live data)
 cd apps/api && bun run poll
 
-# Terminal 3 — Frontend
+# Terminal 3 — Web
 cd apps/web && bun run dev
 ```
 
-Or from monorepo root:
+Or from root:
 
 ```bash
-bun run dev          # web + api (turbo)
-# Poll job still separate: cd apps/api && bun run poll
+bun run dev            # web + api via turbo
+# Poll still separate: cd apps/api && bun run poll
 ```
 
-Open http://localhost:3001/roster
+Open [http://localhost:3001](http://localhost:3001) (home) or [http://localhost:3001/roster](http://localhost:3001/roster) (war hub).
 
-## Railway demo (one project, one environment)
+## What the site covers
 
-Demo / share stack — not production hardening. Use **one Railway project** with **shared variables**, three services from the same GitHub repo:
-
-| Service | Role | Start |
+| Area | Routes | Data |
 | --- | --- | --- |
-| `web` | Next.js | `bun run start` in `apps/web` (after monorepo build) |
-| `api` | Hono HTTP | `bun run start` in `apps/api` |
-| `poll` | PS99 ingest + global index | `bun run poll` in `apps/api` |
+| War hub | `/roster`, race / graphs / coverage panels | `GET /api/roster`, graphs, leaderboards |
+| History | `/history`, replay, reports | `GET /api/battle-archive`, `/api/battles/:id` |
+| Rewards | `/battle-rewards` | `GET /api/battle-rewards` |
+| Leagues | `/leagues` | `GET /api/leagues` |
+| Global | `/global` | `GET /api/global-leaderboard` |
+| Community | `/community`, join, registry | `GET /api/registry` + static join copy |
 
-### 1. Connect repo
+Frontend never calls PS99 directly — only `apps/api`.
 
-Railway → New Project → Deploy from GitHub → `myjak/K0ii-website`.
+## Railway (demo)
 
-### 2. Shared env (Project → Variables, or share across services)
+One project, three services from the same repo:
 
-Copy from local `.env.example` / your machine `.env` (never commit secrets):
+| Service | Start | Notes |
+| --- | --- | --- |
+| `web` | `cd apps/web && bun run start` | Build: `bun install && bunx turbo build --filter=@k0ii/web` |
+| `api` | `cd apps/api && bun run start` | Build: `bun install && bun run db:generate` |
+| `poll` | `cd apps/api && bun run poll` | Same build as api; no public domain |
 
-- `DATABASE_URL` / `DIRECT_DATABASE_URL` (same Prisma Postgres / Accelerate as local is fine for demo)
-- `CLAN_NAME=K0i2`
-- Poll / global knobs as needed
-- On **api**: `WEB_ORIGINS=https://YOUR-WEB.up.railway.app` (no trailing slash; or `*` for demo)
-- On **web** (preferred — avoids browser CORS):
-  - `API_UPSTREAM_URL=https://YOUR-API.up.railway.app`
-  - `NEXT_PUBLIC_API_SAME_ORIGIN=1`
-  - (optional) keep `NEXT_PUBLIC_API_URL` as the api URL for SSR fallback only
+**Shared env:** `DATABASE_URL`, `DIRECT_DATABASE_URL`, `CLAN_NAME=K0i2`, poll knobs from `.env.example`.
 
-### 3. Service settings (all: Root Directory = `/`, Builder = Railpack / Nixpacks with Bun)
+**Wire web → api:**
 
-**api**
+1. Deploy api → copy public URL  
+2. Web: `API_UPSTREAM_URL=https://YOUR-API…` + `NEXT_PUBLIC_API_SAME_ORIGIN=1`  
+3. Api: `WEB_ORIGINS=https://YOUR-WEB…` (or `*` for demo)
 
-- Build: `bun install && bun run db:generate`
-- Start: `cd apps/api && bun run start`
-- Generate public domain; Railway sets `PORT` (API already prefers `PORT` over `API_PORT`)
-- One-shot after first deploy: `cd apps/api && bunx prisma db push` (or migrate) via Railway shell if schema empty
-
-**poll**
-
-- Same build as api (or skip heavy build if image already has deps — simplest: duplicate api build)
-- Start: `cd apps/api && bun run poll`
-- No public domain needed
-- Global index lives in Postgres (`GlobalPlayerIndexSnapshot`) — no shared volume needed between poll and api
-- Optional local `data/` for poll-stamp / file mirrors only
-
-**web**
-
-- Build: `bun install && bunx turbo build --filter=@k0ii/web`
-- Start: `cd apps/web && bun run start`
-- Set `PORT` / Next listens on Railway `PORT` — if Next ignores it, set Start to `cd apps/web && bunx next start --port $PORT`
-- Public domain = what you share with others
-
-### 4. Wire frontend → api
-
-1. Deploy api → copy public URL (`https://…up.railway.app`)  
-2. On **web**: set `API_UPSTREAM_URL` to that URL + `NEXT_PUBLIC_API_SAME_ORIGIN=1` → redeploy web  
-3. On **api**: set `WEB_ORIGINS` to the web public URL (or `*`) → redeploy api  
-
-Browser calls `/api/…` on the web origin; `apps/web/src/app/api/[...path]/route.ts` proxies to the api service at runtime (so `API_UPSTREAM_URL` need not exist at build time). Rewards / Global / Leagues are client-only and need this (or working CORS).
-
-### Notes
-
-- One environment = don’t create production/staging splits; keep this project as **demo**.
-- Accelerate ops still apply if you use Accelerate `DATABASE_URL`.
-- Local folder `d:\Github\k0ii-clan\k0ii-website` is a copy; ongoing work should use `d:\Github\K0ii-website` (this repo).
+Browser hits `/api/*` on the web origin; `apps/web/src/app/api/[...path]/route.ts` proxies to the api service.
 
 ## Docs
 
-- PS99 API: https://github.com/BIG-Games-LLC/ps99-public-api-docs
-- `apps/web/README.md` — frontend
-- `apps/api/README.md` — backend, Prisma, polling
+| Doc | What |
+| --- | --- |
+| [`apps/web/README.md`](./apps/web/README.md) | Frontend pages, env, structure |
+| [`apps/api/README.md`](./apps/api/README.md) | HTTP routes, poll job, Prisma, env |
+| [`packages/schemas/README.md`](./packages/schemas/README.md) | Shared Zod packages |
+| [PS99 API docs](https://github.com/BIG-Games-LLC/ps99-public-api-docs) | Upstream game API |
 
-## Env vars
-
-See [`.env.example`](./.env.example). Primary clan is `K0i2`.
+Env reference: [`.env.example`](./.env.example).

@@ -2,11 +2,22 @@
 
 import type { BattleSummary, ClanNeighbor, RosterMember, RosterResponse } from "@k0ii/schemas";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
+import {
+  ChartHoverTooltip,
+  formatChartTime,
+  pointerToSvgPoint,
+} from "@/components/charts/chart-hover-tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { dialogContentClass } from "@/components/roster/dialog-bits";
-import { analyze, collectClans, computeGiniStats } from "@/lib/analytics";
+import { analyze, battleMsRemaining, collectClans, computeGiniStats } from "@/lib/analytics";
 import { formatDuration, formatNumber, formatPoints, formatPph, formatSignedDelta } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -59,9 +70,11 @@ export function AnalyticsDialogs({
   );
 
   const projection = useMemo(() => {
-    if (!battle?.live || !battle.msRemaining || battle.msRemaining <= 0) return null;
+    if (!battle?.live) return null;
+    const msRemaining = battleMsRemaining(battle, data.generatedAt);
+    if (msRemaining == null || msRemaining <= 0) return null;
     try {
-      return analyze(collectClans(data), data.clanName, battle.msRemaining);
+      return analyze(collectClans(data), data.clanName, msRemaining);
     } catch {
       return null;
     }
@@ -95,7 +108,7 @@ export function AnalyticsDialogs({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {kind === "forecast"
-              ? "Projected rank from recent PPH. Gets sharper near the end."
+              ? "End-of-battle rank from current pace over time left."
               : kind === "rank"
                 ? "Rank over this battle from poll snapshots."
                 : kind === "gini"
@@ -114,7 +127,10 @@ export function AnalyticsDialogs({
                   <Metric label="Projected finish" value={`#${projection.projectedRank}`} />
                   <Metric
                     label="Expected rank"
-                    value={projection.standings[data.clanName]?.expectedRank?.toFixed(1) ?? "-"}
+                    value={
+                      projection.standings[projection.ours.name]?.expectedRank?.toFixed(1) ??
+                      "-"
+                    }
                   />
                   <Metric
                     label="To catch"
@@ -206,27 +222,134 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function RankSpark({ series }: { series: Array<{ timestamp: number; value: number }> }) {
-  if (series.length < 2) {
-    return <p className="text-sm text-ink-soft">Not enough rank samples yet.</p>;
-  }
-  const values = series.map((p) => p.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(1, max - min);
-  const w = 320;
-  const h = 80;
-  const points = series
-    .map((p, i) => {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [hover, setHover] = useState<{
+    localX: number;
+    localY: number;
+    svgX: number;
+    svgY: number;
+    value: number;
+    timestamp: number;
+  } | null>(null);
+
+  const layout = useMemo(() => {
+    if (series.length < 2) return null;
+    const values = series.map((p) => p.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = Math.max(1, max - min);
+    const w = 320;
+    const h = 80;
+    const coords = series.map((p, i) => {
       const x = (i / (series.length - 1)) * w;
       const y = h - ((p.value - min) / span) * (h - 8) - 4;
-      return `${x},${y}`;
-    })
-    .join(" ");
+      return { x, y, value: p.value, timestamp: p.timestamp };
+    });
+    const points = coords.map((p) => `${p.x},${p.y}`).join(" ");
+    return { w, h, coords, points };
+  }, [series]);
+
+  const clearHover = useCallback(() => setHover(null), []);
+
+  const onPointer = useCallback(
+    (event: ReactPointerEvent<SVGSVGElement>) => {
+      if (!layout || !svgRef.current || !wrapRef.current) return;
+      const { x } = pointerToSvgPoint(
+        svgRef.current,
+        event.clientX,
+        event.clientY,
+        layout.w,
+        layout.h,
+      );
+      let best = layout.coords[0]!;
+      let bestDist = Math.abs(best.x - x);
+      for (let i = 1; i < layout.coords.length; i++) {
+        const p = layout.coords[i]!;
+        const dist = Math.abs(p.x - x);
+        if (dist < bestDist) {
+          best = p;
+          bestDist = dist;
+        }
+      }
+      const wrapRect = wrapRef.current.getBoundingClientRect();
+      setHover({
+        localX: event.clientX - wrapRect.left,
+        localY: event.clientY - wrapRect.top,
+        svgX: best.x,
+        svgY: best.y,
+        value: best.value,
+        timestamp: best.timestamp,
+      });
+    },
+    [layout],
+  );
+
+  if (!layout) {
+    return <p className="text-sm text-ink-soft">Not enough rank samples yet.</p>;
+  }
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full rounded-[var(--radius-input)] bg-card-surface-alt p-2">
-      <polyline fill="none" stroke="var(--koi-orange)" strokeWidth="2" points={points} />
-    </svg>
+    <div ref={wrapRef} className="relative">
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${layout.w} ${layout.h}`}
+        className="w-full touch-none rounded-[var(--radius-input)] bg-card-surface-alt p-2"
+        onPointerMove={onPointer}
+        onPointerDown={onPointer}
+        onPointerLeave={clearHover}
+        onPointerCancel={clearHover}
+      >
+        <polyline
+          fill="none"
+          stroke="var(--koi-orange)"
+          strokeWidth="2"
+          points={layout.points}
+        />
+        {hover ? (
+          <>
+            <line
+              x1={hover.svgX}
+              x2={hover.svgX}
+              y1={0}
+              y2={layout.h}
+              stroke="color-mix(in srgb, var(--koi-orange) 45%, transparent)"
+              strokeWidth={1}
+              strokeDasharray="3 2"
+              pointerEvents="none"
+            />
+            <circle
+              cx={hover.svgX}
+              cy={hover.svgY}
+              r="3.5"
+              fill="var(--card-surface)"
+              stroke="var(--koi-orange)"
+              strokeWidth="2"
+              pointerEvents="none"
+            />
+          </>
+        ) : null}
+      </svg>
+      <ChartHoverTooltip
+        open={Boolean(hover)}
+        x={hover?.localX ?? 0}
+        y={hover?.localY ?? 0}
+        title={hover ? formatChartTime(hover.timestamp) : ""}
+        rows={
+          hover
+            ? [
+                {
+                  label: "Rank",
+                  value: `#${Math.round(hover.value)}`,
+                  color: "var(--koi-orange)",
+                  emphasis: true,
+                },
+              ]
+            : []
+        }
+        containerWidth={wrapRef.current?.clientWidth ?? 0}
+      />
+    </div>
   );
 }
 
@@ -237,9 +360,11 @@ export function BattleProjectionPanel({
 }) {
   const battle = data.battle;
   const projection = useMemo(() => {
-    if (!battle?.live || !battle.msRemaining || battle.msRemaining <= 0) return null;
+    if (!battle?.live) return null;
+    const msRemaining = battleMsRemaining(battle, data.generatedAt);
+    if (msRemaining == null || msRemaining <= 0) return null;
     try {
-      return analyze(collectClans(data), data.clanName, battle.msRemaining);
+      return analyze(collectClans(data), data.clanName, msRemaining);
     } catch {
       return null;
     }
@@ -253,7 +378,7 @@ export function BattleProjectionPanel({
         <div>
           <h2 className="font-display text-2xl font-bold text-ink">Projected finish</h2>
           <p className="text-sm text-ink-soft">
-            Projected rank from recent PPH. Gets sharper near the end.
+            End-of-battle rank from current pace over time left.
           </p>
         </div>
         <Link

@@ -7,7 +7,7 @@ export {
   type ClanInput,
   type ClanProjection,
 } from "./projection";
-export { collectClans, resolveBattleEndsAt } from "./site-clans";
+export { collectClans, resolveBattleEndsAt, battleMsRemaining } from "./site-clans";
 export { computeGiniStats } from "./gini";
 export {
   buildClanCompetitors,

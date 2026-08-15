@@ -2,7 +2,7 @@ import type { LeaderboardsResponse } from "@k0ii/schemas";
 import type { Env } from "../env";
 import { prisma } from "../lib/prisma";
 import { ps99ImageUrl } from "./ps99-client";
-import { buildCleanPointsSeries, calculatePph } from "./stats";
+import { buildCleanPointsSeries, calculatePph, preferredPacePph } from "./stats";
 
 export async function buildLeaderboardsResponse(
   env: Env,
@@ -78,17 +78,37 @@ export async function buildLeaderboardsResponse(
     seriesByClan.set(s.clanId, list);
   }
 
+  const msRemaining =
+    battle.state === "live" && battle.endTime && battle.endTime.getTime() > now
+      ? battle.endTime.getTime() - now
+      : null;
+
   const clans = boardSnaps.map((snap, index) => {
     const series = buildCleanPointsSeries(seriesByClan.get(snap.clanId) ?? []);
     const points = Number(snap.battlePoints);
     const next = boardSnaps[index - 1];
     const gapToNext = next ? Math.max(0, Number(next.battlePoints) - points + 1) : null;
-    const pph = calculatePph(series);
+    const pph = preferredPacePph(series) ?? calculatePph(series);
     const nextSeries = next
       ? buildCleanPointsSeries(seriesByClan.get(next.clanId) ?? [])
       : [];
-    const nextPph = calculatePph(nextSeries);
-    const relative = pph !== null && nextPph !== null ? pph - nextPph : null;
+    const nextPph =
+      preferredPacePph(nextSeries) ?? calculatePph(nextSeries);
+    const relative =
+      pph !== null && nextPph !== null ? pph - nextPph : null;
+    let etaSeconds: number | null = null;
+    if (gapToNext !== null && relative !== null && relative > 0) {
+      const seconds = (gapToNext / relative) * 3600;
+      if (
+        Number.isFinite(seconds) &&
+        seconds > 0 &&
+        (msRemaining == null ||
+          msRemaining <= 0 ||
+          seconds * 1000 <= msRemaining)
+      ) {
+        etaSeconds = seconds;
+      }
+    }
     return {
       rank: snap.rank ?? index + 1,
       name: snap.clanId,
@@ -100,10 +120,7 @@ export async function buildLeaderboardsResponse(
       medal: null,
       isOurs: snap.clanId === env.CLAN_NAME,
       gapToNext,
-      etaSeconds:
-        gapToNext !== null && relative !== null && relative > 0
-          ? (gapToNext / relative) * 3600
-          : null,
+      etaSeconds,
     };
   });
 

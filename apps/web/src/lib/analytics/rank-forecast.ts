@@ -231,21 +231,22 @@ export function battleHoursLeft(
 }
 
 /**
- * Horizon for finish projection. Live wars keep projecting even if the
- * nominal 24h clock expired (PS99 wars can run longer / restart mid-window).
+ * Horizon for finish projection from a real remaining clock.
+ * Never invents 12h/24h soft windows — callers must pass remaining time.
  */
 export function projectionHorizonHours(args: {
+  /** Preferred: ms until battle ends. */
+  msRemaining?: number | null;
   battleStartedAt?: number | null;
   live?: boolean | null;
   now?: number;
-}): number {
+}): number | null {
+  const left = Number(args.msRemaining);
+  if (Number.isFinite(left) && left > 0) return left / 3_600_000;
+
   const clock = battleHoursLeft(args.battleStartedAt, args.now);
-  if (args.live) {
-    if (clock != null && clock > 0.5) return Math.min(24, clock);
-    return 12;
-  }
-  if (clock == null) return 24;
-  return clock;
+  if (clock != null && clock > 0) return clock;
+  return null;
 }
 
 export type FinishOddsBin = {
@@ -295,7 +296,8 @@ export function catchUpRate(args: {
   rivalPph: number;
   hoursLeft: number;
 }): { gap: number; neededExtraPph: number; catching: boolean } | null {
-  const h = Math.max(0.25, args.hoursLeft);
+  if (!Number.isFinite(args.hoursLeft) || args.hoursLeft <= 0) return null;
+  const h = args.hoursLeft;
   const ourEnd = args.ourPoints + Math.max(0, args.ourPph) * h;
   const rivalEnd = args.rivalPoints + Math.max(0, args.rivalPph) * h;
   const gap = args.rivalPoints - args.ourPoints;

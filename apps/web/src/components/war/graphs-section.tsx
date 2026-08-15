@@ -1,8 +1,20 @@
 "use client";
 
 import type { GraphsResponse } from "@k0ii/schemas";
-import { useMemo, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
+import {
+  ChartHoverTooltip,
+  formatChartTime,
+  pointerToSvgPoint,
+  type ChartTooltipRow,
+} from "@/components/charts/chart-hover-tooltip";
 import { HubSkeleton } from "@/components/hub/view-switcher";
 import { Heading } from "@/components/layout/heading";
 import { Button } from "@/components/ui/button";
@@ -364,6 +376,24 @@ export function GraphsSection({ embedded }: { embedded?: boolean }) {
   );
 }
 
+function nearestSeriesPoint(
+  series: Array<{ timestamp: number; value: number }>,
+  targetT: number,
+): { timestamp: number; value: number } | null {
+  if (series.length === 0) return null;
+  let best = series[0]!;
+  let bestDist = Math.abs(best.timestamp - targetT);
+  for (let i = 1; i < series.length; i++) {
+    const p = series[i]!;
+    const dist = Math.abs(p.timestamp - targetT);
+    if (dist < bestDist) {
+      best = p;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
 function MultiLineChart({
   clans,
   view,
@@ -380,10 +410,29 @@ function MultiLineChart({
   const plotW = w - padL - padR;
   const plotH = h - padT - padB;
 
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [hover, setHover] = useState<{
+    svgX: number;
+    tipX: number;
+    tipY: number;
+    timestamp: number;
+    rows: ChartTooltipRow[];
+    dots: Array<{ x: number; y: number; color: string; ours: boolean }>;
+  } | null>(null);
+
   const seriesList = useMemo(() => {
-    return clans.map((c) => {
+    return clans.map((c, idx) => {
+      const color = c.isOurs
+        ? "var(--koi-orange)"
+        : SERIES_PALETTE[idx % SERIES_PALETTE.length]!;
       if (view === "rank") {
-        return { name: c.name, isOurs: c.isOurs, series: c.rankSeries };
+        return {
+          name: c.name,
+          isOurs: c.isOurs,
+          color,
+          series: c.rankSeries,
+        };
       }
       if (view === "rate") {
         const pts = c.pointsSeries;
@@ -398,16 +447,146 @@ function MultiLineChart({
             value: Math.max(0, (p.value - prev.value) / hoursSpan),
           };
         });
-        return { name: c.name, isOurs: c.isOurs, series: rate };
+        return {
+          name: c.name,
+          isOurs: c.isOurs,
+          color,
+          series: rate,
+        };
       }
-      return { name: c.name, isOurs: c.isOurs, series: c.pointsSeries };
+      return {
+        name: c.name,
+        isOurs: c.isOurs,
+        color,
+        series: c.pointsSeries,
+      };
     });
   }, [clans, view]);
 
   const allValues = seriesList.flatMap((s) => s.series.map((p) => p.value));
-  const allTimes = seriesList.flatMap((s) => s.series.map((p) => p.timestamp));
+  const allTimes = useMemo(() => {
+    const times = seriesList.flatMap((s) => s.series.map((p) => p.timestamp));
+    return [...new Set(times)].sort((a, b) => a - b);
+  }, [seriesList]);
 
-  if (allValues.length < 2 || allTimes.length < 2) {
+  const extents = useMemo(() => {
+    if (allValues.length < 2 || allTimes.length < 2) return null;
+    const minV = Math.min(...allValues);
+    const maxV = Math.max(...allValues);
+    const minT = allTimes[0]!;
+    const maxT = allTimes[allTimes.length - 1]!;
+    return {
+      minV,
+      maxV,
+      minT,
+      maxT,
+      vSpan: Math.max(1e-6, maxV - minV),
+      tSpan: Math.max(1, maxT - minT),
+    };
+  }, [allTimes, allValues]);
+
+  const clearHover = useCallback(() => setHover(null), []);
+
+  const onPointer = useCallback(
+    (event: ReactPointerEvent<SVGSVGElement>) => {
+      const svg = svgRef.current;
+      const wrap = wrapRef.current;
+      if (!svg || !wrap || !extents || allTimes.length < 2) return;
+
+      const { x: svgX } = pointerToSvgPoint(
+        svg,
+        event.clientX,
+        event.clientY,
+        w,
+        h,
+      );
+      if (svgX < padL || svgX > w - padR) {
+        setHover(null);
+        return;
+      }
+
+      const targetT =
+        extents.minT + ((svgX - padL) / plotW) * extents.tSpan;
+      const snappedT = nearestSeriesPoint(
+        allTimes.map((timestamp) => ({ timestamp, value: 0 })),
+        targetT,
+      )?.timestamp;
+      if (snappedT == null) {
+        setHover(null);
+        return;
+      }
+
+      const snappedSvgX =
+        padL + ((snappedT - extents.minT) / extents.tSpan) * plotW;
+
+      const maxSkewMs = Math.max(10 * 60_000, extents.tSpan * 0.06);
+      const entries: Array<{
+        row: ChartTooltipRow;
+        sort: number;
+        dot: { x: number; y: number; color: string; ours: boolean };
+      }> = [];
+
+      for (const clan of seriesList) {
+        const point = nearestSeriesPoint(clan.series, snappedT);
+        if (!point) continue;
+        if (Math.abs(point.timestamp - snappedT) > maxSkewMs) continue;
+
+        const yNorm = (point.value - extents.minV) / extents.vSpan;
+        const y =
+          view === "rank"
+            ? padT + yNorm * plotH
+            : padT + (1 - yNorm) * plotH;
+        const metricSort = view === "rank" ? -point.value : point.value;
+        const ours = Boolean(clan.isOurs);
+        entries.push({
+          row: {
+            label: clan.name,
+            value: formatAxisValue(view, point.value),
+            color: clan.color,
+            emphasis: ours,
+          },
+          sort: ours ? Number.POSITIVE_INFINITY : metricSort,
+          dot: { x: snappedSvgX, y, color: clan.color, ours },
+        });
+      }
+
+      if (entries.length === 0) {
+        setHover(null);
+        return;
+      }
+
+      entries.sort((a, b) => b.sort - a.sort);
+      const ours = entries.filter((e) => e.row.emphasis);
+      const rest = entries.filter((e) => !e.row.emphasis);
+      const maxRest = Math.max(0, 6 - ours.length);
+      const shown = [...ours, ...rest.slice(0, maxRest)];
+      const rows = shown.map((e) => e.row);
+      if (rest.length > maxRest) {
+        rows.push({
+          label: `+${rest.length - maxRest} more`,
+          value: "…",
+        });
+      }
+
+      const svgRect = svg.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      const tipX =
+        (snappedSvgX / w) * svgRect.width + (svgRect.left - wrapRect.left);
+      const tipY = padT * (svgRect.height / h) + 8;
+
+      setHover({
+        svgX: snappedSvgX,
+        tipX,
+        tipY,
+        timestamp: snappedT,
+        rows,
+        dots: shown.map((e) => e.dot),
+      });
+    },
+    [allTimes, extents, plotH, plotW, seriesList, view],
+  );
+
+  if (!extents) {
     return (
       <div className="flex min-h-[12rem] items-center justify-center">
         <p className="max-w-sm text-center text-sm text-ink-soft">
@@ -418,12 +597,7 @@ function MultiLineChart({
     );
   }
 
-  const minV = Math.min(...allValues);
-  const maxV = Math.max(...allValues);
-  const minT = Math.min(...allTimes);
-  const maxT = Math.max(...allTimes);
-  const vSpan = Math.max(1e-6, maxV - minV);
-  const tSpan = Math.max(1, maxT - minT);
+  const { minV, maxV, minT, maxT, vSpan, tSpan } = extents;
 
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => {
     const value =
@@ -447,81 +621,129 @@ function MultiLineChart({
   };
 
   return (
-    <div className="w-full overflow-x-auto">
-      <svg
-        viewBox={`0 0 ${w} ${h}`}
-        className="mx-auto block h-auto min-h-[11rem] w-full min-w-[18rem] max-w-full"
-        role="img"
-        aria-label={metricLabel(view)}
-      >
-        {yTicks.map((tick, i) => (
-          <g key={`y-${i}`}>
-            <line
-              x1={padL}
-              x2={w - padR}
-              y1={tick.y}
-              y2={tick.y}
-              stroke="color-mix(in srgb, var(--pond-teal) 14%, transparent)"
-              strokeWidth={1}
-            />
+    <div ref={wrapRef} className="relative w-full">
+      <div className="w-full overflow-x-auto">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${w} ${h}`}
+          className="mx-auto block h-auto min-h-[11rem] w-full min-w-[18rem] max-w-full touch-none"
+          role="img"
+          aria-label={metricLabel(view)}
+          onPointerMove={onPointer}
+          onPointerDown={onPointer}
+          onPointerLeave={clearHover}
+          onPointerCancel={clearHover}
+        >
+          {yTicks.map((tick, i) => (
+            <g key={`y-${i}`}>
+              <line
+                x1={padL}
+                x2={w - padR}
+                y1={tick.y}
+                y2={tick.y}
+                stroke="color-mix(in srgb, var(--pond-teal) 14%, transparent)"
+                strokeWidth={1}
+              />
+              <text
+                x={padL - 8}
+                y={tick.y + 4}
+                textAnchor="end"
+                className="fill-[var(--ink-soft)]"
+                style={{ fontSize: 10 }}
+              >
+                {formatAxisValue(view, tick.value)}
+              </text>
+            </g>
+          ))}
+
+          {xTicks.map((tick, i) => (
             <text
-              x={padL - 8}
-              y={tick.y + 4}
-              textAnchor="end"
+              key={`x-${i}`}
+              x={tick.x}
+              y={h - 8}
+              textAnchor={i === 0 ? "start" : i === 2 ? "end" : "middle"}
               className="fill-[var(--ink-soft)]"
               style={{ fontSize: 10 }}
             >
-              {formatAxisValue(view, tick.value)}
+              {formatTickTime(tick.timestamp)}
             </text>
-          </g>
-        ))}
+          ))}
 
-        {xTicks.map((tick, i) => (
-          <text
-            key={`x-${i}`}
-            x={tick.x}
-            y={h - 8}
-            textAnchor={i === 0 ? "start" : i === 2 ? "end" : "middle"}
-            className="fill-[var(--ink-soft)]"
-            style={{ fontSize: 10 }}
-          >
-            {formatTickTime(tick.timestamp)}
-          </text>
-        ))}
+          {seriesList.map((clan) => {
+            if (clan.series.length < 2) return null;
+            const points = clan.series
+              .map((p) => {
+                const x = padL + ((p.timestamp - minT) / tSpan) * plotW;
+                const yNorm = (p.value - minV) / vSpan;
+                const y =
+                  view === "rank"
+                    ? padT + yNorm * plotH
+                    : padT + (1 - yNorm) * plotH;
+                return `${x},${y}`;
+              })
+              .join(" ");
+            return (
+              <polyline
+                key={clan.name}
+                fill="none"
+                stroke={clan.color}
+                strokeWidth={clan.isOurs ? 3 : 1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray={clan.isOurs ? undefined : "5 4"}
+                opacity={clan.isOurs ? 1 : hover ? 0.45 : 0.72}
+                points={points}
+              />
+            );
+          })}
 
-        {seriesList.map((clan, idx) => {
-          if (clan.series.length < 2) return null;
-          const points = clan.series
-            .map((p) => {
-              const x = padL + ((p.timestamp - minT) / tSpan) * plotW;
-              const yNorm = (p.value - minV) / vSpan;
-              const y =
-                view === "rank"
-                  ? padT + yNorm * plotH
-                  : padT + (1 - yNorm) * plotH;
-              return `${x},${y}`;
-            })
-            .join(" ");
-          const stroke = clan.isOurs
-            ? "var(--koi-orange)"
-            : SERIES_PALETTE[idx % SERIES_PALETTE.length];
-          return (
-            <polyline
-              key={clan.name}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={clan.isOurs ? 3 : 1.75}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray={clan.isOurs ? undefined : "5 4"}
-              opacity={clan.isOurs ? 1 : 0.72}
-              points={points}
-            >
-              <title>{clan.name}</title>
-            </polyline>
-          );
-        })}
-      </svg>
+          {hover ? (
+            <>
+              <line
+                x1={hover.svgX}
+                x2={hover.svgX}
+                y1={padT}
+                y2={h - padB}
+                stroke="color-mix(in srgb, var(--koi-orange) 60%, transparent)"
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
+                pointerEvents="none"
+              />
+              {hover.dots.map((dot, i) => (
+                <circle
+                  key={`${dot.color}-${i}`}
+                  cx={dot.x}
+                  cy={dot.y}
+                  r={dot.ours ? 5 : 3.5}
+                  fill="var(--card-surface)"
+                  stroke={dot.color}
+                  strokeWidth={dot.ours ? 2.5 : 2}
+                  pointerEvents="none"
+                />
+              ))}
+            </>
+          ) : null}
+
+          <rect
+            x={padL}
+            y={padT}
+            width={plotW}
+            height={plotH}
+            fill="transparent"
+            className="cursor-crosshair"
+          />
+        </svg>
+      </div>
+
+      <ChartHoverTooltip
+        open={Boolean(hover)}
+        x={hover?.tipX ?? 0}
+        y={hover?.tipY ?? 0}
+        title={hover ? formatChartTime(hover.timestamp) : ""}
+        rows={hover?.rows ?? []}
+        containerWidth={wrapRef.current?.clientWidth ?? 0}
+        containerHeight={wrapRef.current?.clientHeight ?? 0}
+      />
     </div>
   );
 }
