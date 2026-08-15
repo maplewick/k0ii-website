@@ -183,7 +183,7 @@ export function ClansPanel() {
     return (
       <div className="pond-card flex flex-col items-start gap-3 pond-pad">
         <Heading as="h3" className="text-xl">
-          Clan standings
+          Clan Standings
         </Heading>
         <p className="max-w-md text-sm text-ink-soft">
           Could not load clan leaderboards. Check the API, then try again.
@@ -228,7 +228,7 @@ export function ClansPanel() {
               as="h2"
               className="truncate text-3xl tracking-tight sm:text-4xl"
             >
-              Clan standings
+              Clan Standings
             </Heading>
             <Badge variant={live ? "success" : "secondary"}>
               {live ? "Live Battle" : "Last Battle"}
@@ -308,7 +308,7 @@ export function ClansPanel() {
         <div className="flex flex-wrap items-end justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pond-teal)_18%,transparent)] px-4 py-3.5 sm:px-5">
           <div>
             <Heading as="h3" className="text-xl sm:text-2xl">
-              Full ladder
+              Full Ladder
             </Heading>
             <p className="mt-0.5 text-xs text-ink-soft">
               Points, pace, and pass ETA

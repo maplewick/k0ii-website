@@ -38,7 +38,7 @@ export function HistoryHub() {
       <header className="animate-fade-rise flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="pond-section-head">
           <Heading as="h1">
-            Battle <span className="text-koi">history</span>
+            Battle <span className="text-koi">History</span>
           </Heading>
           <p className="pond-lede">
             Final standings or scrub the war clock. Same battle pick drives both

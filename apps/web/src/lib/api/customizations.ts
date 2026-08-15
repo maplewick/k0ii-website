@@ -24,6 +24,7 @@ export type MemberCustomization = {
   frameStyle: FrameStyle | null;
   decoration: string | null;
   decorationCutout: boolean;
+  backgroundGifUrl: string | null;
   accentColor: string | null;
   nameColor: string | null;
   customTitle: string | null;
@@ -58,6 +59,18 @@ function safeImageUrl(value: unknown): string | null {
   }
 }
 
+/**
+ * Row backgrounds are interpolated into a CSS `url('…')`, and React does not
+ * sanitise custom-property values — a quote or paren in the URL would let it
+ * break out of the declaration. Anything with those characters is dropped
+ * rather than escaped, since a legitimate image URL never needs them.
+ */
+function safeCssUrl(value: unknown): string | null {
+  const url = safeImageUrl(value);
+  if (!url) return null;
+  return /["'()\\\s]/.test(url) ? null : url;
+}
+
 function safeText(value: unknown, max = 80): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -77,6 +90,7 @@ function toCustomization(raw: Record<string, unknown>): MemberCustomization | nu
     frameStyle: safeFrameStyle(raw.frameStyle),
     decoration: safeImageUrl(raw.decoration),
     decorationCutout: raw.decorationCutout === true,
+    backgroundGifUrl: safeCssUrl(raw.backgroundGifUrl),
     accentColor: safeColor(raw.accentColor),
     nameColor: safeColor(raw.nameColor),
     customTitle: safeText(raw.customTitle, 40),

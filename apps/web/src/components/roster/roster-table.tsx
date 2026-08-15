@@ -412,6 +412,10 @@ export function RosterTable({
     [members],
   );
 
+  // Row background GIFs are per-member customisation, same source the player
+  // cell reads; react-query dedupes the two calls to one request.
+  const { data: customizations } = useCustomizations();
+
   return (
     <div className="pond-card overflow-hidden">
       <div className="md:hidden">
@@ -579,17 +583,34 @@ export function RosterTable({
           <tbody>
             {table.getRowModel().rows.map((row, i) => {
               const member = row.original;
+              const rowGif =
+                customizations?.[String(member.robloxUserId)]?.backgroundGifUrl ??
+                null;
               return (
               <tr
                 key={row.id}
+                style={
+                  rowGif
+                    ? ({
+                        "--roster-row-gif": `url('${rowGif}')`,
+                      } as React.CSSProperties)
+                    : undefined
+                }
                 className={cn(
                   "transition-colors duration-150 ease-[var(--ease-out)]",
-                  rankTone(i) ??
-                    (i % 2 === 0
-                      ? "bg-card-surface/70"
-                      : "bg-card-surface-alt/60"),
+                  // The striping below would paint over the image, so a row with
+                  // a background opts out of it entirely.
+                  rowGif
+                    ? "koi-row-gif"
+                    : (rankTone(i) ??
+                      (i % 2 === 0
+                        ? "bg-card-surface/70"
+                        : "bg-card-surface-alt/60")),
                   onSelectMember &&
-                    "cursor-pointer hover:bg-[color-mix(in_srgb,var(--pond-teal)_10%,transparent)] active:scale-[0.998]",
+                    "cursor-pointer active:scale-[0.998]",
+                  onSelectMember &&
+                    !rowGif &&
+                    "hover:bg-[color-mix(in_srgb,var(--pond-teal)_10%,transparent)]",
                 )}
                 onClick={() => onSelectMember?.(member)}
                 onKeyDown={(e) => {

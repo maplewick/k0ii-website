@@ -133,7 +133,7 @@ export function GlobalView() {
         <div className="min-w-0 pond-section-head">
           <div className="flex flex-wrap items-center gap-2.5">
             <Heading as="h1">
-              Global <span className="text-koi">players</span>
+              Global <span className="text-koi">Players</span>
             </Heading>
             <Badge variant="info">{formatNumber(total)} indexed</Badge>
           </div>
@@ -210,7 +210,7 @@ export function GlobalView() {
       {error ? (
         <div className="pond-card flex flex-col items-start gap-3 pond-pad">
           <Heading as="h2" className="text-xl">
-            Global players
+            Global Players
           </Heading>
           <p className="max-w-md text-sm text-ink-soft">
             Failed to load global leaderboard. Check the API, then try again.
@@ -230,7 +230,7 @@ export function GlobalView() {
       {!error && !showSkeleton && podium.length > 0 ? (
         <section className="space-y-3">
           <Heading as="h2" className="text-xl sm:text-2xl">
-            Top of board
+            Top of Board
           </Heading>
           <div className="grid gap-3 sm:grid-cols-3">
             {podium.map((p, i) => (

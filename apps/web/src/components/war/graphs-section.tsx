@@ -147,7 +147,7 @@ export function GraphsSection({ embedded }: { embedded?: boolean }) {
     return (
       <div className="pond-card flex flex-col items-start gap-3 pond-pad">
         <Heading as="h3" className="text-xl">
-          War graphs
+          War Graphs
         </Heading>
         <p className="max-w-md text-sm text-ink-soft">
           Could not load graph series. Check the API, then try again.
@@ -169,7 +169,7 @@ export function GraphsSection({ embedded }: { embedded?: boolean }) {
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <Heading as="h2" className="text-2xl tracking-tight sm:text-3xl">
-              War graphs
+              War Graphs
             </Heading>
             <p className="text-sm text-ink-soft">
               {data?.battleId ? data.battleId : "Current window"}

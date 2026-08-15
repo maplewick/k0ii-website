@@ -412,7 +412,7 @@ function RequirementsSection() {
             </span>
             <div>
               <h3 className="font-display text-2xl font-bold text-ink">
-                Nice to have
+                Nice to Have
               </h3>
               <p className="text-sm text-ink-soft">Helps your application</p>
             </div>

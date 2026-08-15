@@ -613,3 +613,33 @@
   -webkit-mask-image: radial-gradient(circle, transparent 0 46%, #000 47%);
   mask-image: radial-gradient(circle, transparent 0 46%, #000 47%);
 }
+
+/* Member row background GIFs. A scrim is layered over the image so the row's
+   text stays readable whatever the member picked — lighter in light mode,
+   darker in dark mode, and easing off on hover so the image reads through. */
+.koi-row-gif {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)),
+    var(--roster-row-gif);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+}
+
+.koi-row-gif:hover {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.48)),
+    var(--roster-row-gif);
+}
+
+.dark .koi-row-gif {
+  background-image:
+    linear-gradient(rgba(8, 11, 18, 0.58), rgba(8, 11, 18, 0.58)),
+    var(--roster-row-gif);
+}
+
+.dark .koi-row-gif:hover {
+  background-image:
+    linear-gradient(rgba(8, 11, 18, 0.42), rgba(8, 11, 18, 0.42)),
+    var(--roster-row-gif);
+}

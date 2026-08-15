@@ -175,7 +175,7 @@ export function LeaguesView() {
       <div className="pond-page animate-fade-rise">
         <div className="pond-card flex flex-col items-start gap-3 pond-pad">
           <Heading as="h1" className="text-3xl sm:text-4xl">
-            League <span className="text-koi">tracker</span>
+            League <span className="text-koi">Tracker</span>
           </Heading>
           <p className="max-w-md text-sm text-ink-soft">
             Failed to load league data. Check the API, then try again.
@@ -198,7 +198,7 @@ export function LeaguesView() {
         <div className="min-w-0 pond-section-head">
           <div className="flex flex-wrap items-center gap-2.5">
             <Heading as="h1">
-              League <span className="text-koi">tracker</span>
+              League <span className="text-koi">Tracker</span>
             </Heading>
             <Badge variant="info">
               {formatNumber(data?.top100.length ?? 0)} top
@@ -270,7 +270,7 @@ export function LeaguesView() {
       {!hasFilter && podium.length > 0 ? (
         <section className="space-y-3">
           <Heading as="h2" className="text-xl sm:text-2xl">
-            Top of board
+            Top of Board
           </Heading>
           <div className="grid gap-3 sm:grid-cols-3">
             {podium.map((league, i) => (

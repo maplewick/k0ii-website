@@ -294,7 +294,7 @@ export function RacePanel({
     return (
       <div className="pond-card flex flex-col items-start gap-3 pond-pad">
         <Heading as="h3" className="text-xl">
-          Race board
+          Race Board
         </Heading>
         <p className="max-w-md text-sm text-ink-soft">
           Could not load roster data. Check the API, then try again.
@@ -383,7 +383,7 @@ export function RacePanel({
             No live battle
           </Heading>
           <p className="max-w-lg text-sm leading-relaxed text-ink-soft">
-            Race board needs an active war. Standings, gaps, and projected
+            Race Board needs an active war. Standings, gaps, and projected
             finish show here when battle starts.
           </p>
         </div>
@@ -698,7 +698,7 @@ export function RacePanel({
               )}
             >
               <Heading as="h3" className="text-xl">
-                Catch-up target
+                Catch-Up Target
               </Heading>
               {analysis?.target ? (
                 <>

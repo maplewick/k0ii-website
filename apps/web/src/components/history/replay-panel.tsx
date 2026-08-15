@@ -491,7 +491,7 @@ export function ReplayPanel({
         <div className="pond-card overflow-hidden">
           <div className="border-b border-[color-mix(in_srgb,var(--pond-teal)_18%,transparent)] px-4 py-3.5 sm:px-5">
             <Heading as="h3" className="text-xl">
-              Standings at scrub
+              Standings at Scrub
             </Heading>
             <p className="mt-0.5 text-xs text-ink-soft">
               Rank vs finish shown when a player climbs or slips.
