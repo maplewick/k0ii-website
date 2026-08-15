@@ -41,13 +41,42 @@ async function proxy(req: NextRequest, pathSegments: string[]) {
   const contentType =
     upstream.headers.get("content-type") ?? "application/json";
 
+  // The poll job only refreshes every few minutes, so most refetches ask for
+  // bytes the client already has. Tagging the payload lets an unchanged one come
+  // back as a ~300 byte 304 instead of the full response — the roster alone is
+  // ~158KB, re-pulled by every open tab on every interval.
+  //
+  // `must-revalidate` with max-age=0 keeps the data live: the browser always
+  // asks, it just gets told "unchanged" cheaply. Errors are never tagged.
+  const etag =
+    upstream.ok && body.byteLength > 0 ? weakEtag(body) : null;
+
+  if (etag && req.headers.get("if-none-match") === etag) {
+    return new NextResponse(null, {
+      status: 304,
+      headers: { etag, "cache-control": "no-cache, must-revalidate" },
+    });
+  }
+
   return new NextResponse(body, {
     status: upstream.status,
     headers: {
       "content-type": contentType,
-      "cache-control": "no-store",
+      "cache-control": etag ? "no-cache, must-revalidate" : "no-store",
+      ...(etag ? { etag } : {}),
     },
   });
+}
+
+/** Length + FNV-1a over the body — enough to spot a changed payload. */
+function weakEtag(body: ArrayBuffer): string {
+  const bytes = new Uint8Array(body);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i++) {
+    hash ^= bytes[i]!;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `W/"${bytes.length.toString(36)}-${hash.toString(36)}"`;
 }
 
 type Ctx = { params: Promise<{ path: string[] }> };

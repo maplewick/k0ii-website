@@ -165,4 +165,8 @@ console.log(`[api] listening on http://localhost:${port}`);
 console.log(
   `[api] CORS ${env.corsAllowAll ? "allow-all (*)" : `origins=${env.corsOrigins.join(",")}`}`,
 );
-Bun.serve({ port, fetch: app.fetch });
+// Bind :: rather than the default 0.0.0.0 so the web service can reach this over
+// Railway's private network, which is IPv6-only. Going over the public domain
+// instead bills the same bytes twice — once leaving here, once leaving the web
+// service. Dual-stack, so the public domain keeps working either way.
+Bun.serve({ port, hostname: "::", fetch: app.fetch });
